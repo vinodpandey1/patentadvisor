@@ -1,0 +1,14 @@
+{
+    "user_access_control" : {
+        "admin": {
+            "username": "admin",
+            "password": "adminpassword",
+            "access": []
+        },
+        "end-user": {
+            "username": "user",
+            "password": "userpassword",
+            "access": []
+        }
+    }
+}
