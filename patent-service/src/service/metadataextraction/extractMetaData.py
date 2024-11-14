@@ -31,8 +31,7 @@ def fetch_files_from_directory(directory):
 # Main function to process all PDFs in a directory
 def process_multiple_pdfs(pdf_folder_path):
     all_metadata = {}
-    pdf_folder_path =pdf_folder_path +"/documents"
-    
+        
     all_files =fetch_files_from_directory(pdf_folder_path)
     # Loop through each PDF file in the specified folder
     for filename in all_files:
