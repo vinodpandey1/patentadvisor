@@ -18,8 +18,16 @@ def readMetaData():
         print(metadata)
         
 def storeDocuments():
-    metaDataFileName = configReader.getProperty("metadataFileName")
+    metadatafilename = configReader.getProperty("metadatafilename")
     datasetPath = configReader.getDatasetPath()
-    storeDocument.process_and_store_documents(datasetPath+"/documents",datasetPath+"/"+metaDataFileName,configReader.getDatabaseDir())
+    storeDocument.process_and_store_documents(datasetPath+"/documents",datasetPath+"/"+metadatafilename,configReader.getDatabaseDir())
     
-storeDocuments()
+# storeDocuments()
+
+client, collection = storeDocument.ChromaDBClient.get_collection(configReader.getDatabaseDir())
+print(collection.get("US8892906_1"))
+results = collection.query(
+    query_texts=["US Patent"], # Chroma will embed this for you
+    n_results=2 # how many results to return
+)
+# print(results)
