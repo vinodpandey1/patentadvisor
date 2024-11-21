@@ -19,6 +19,7 @@ pydantic
 typing
 together
 sentence-transformers
+python-dotenv
 
 pandas
 numpy
