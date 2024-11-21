@@ -12,7 +12,8 @@ cartesia
 together
 ffmpeg-python
 
-
+spacy
+matplotlib
 pypdf
 pdfplumber
 pydantic

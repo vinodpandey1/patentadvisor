@@ -6,6 +6,12 @@ CONFIG_DIR = ROOT_DIR + "/config"
 OUTPUT_DIR=ROOT_DIR + "/output"
 INPUT_PATENT_DIR_PATH=ROOT_DIR + "/dataset/documents/AI_PATENT"
 
+CLEARML_PROJECT="ai-patent-advisor"
+SUMMARISATION_TASK="patent-summarizer"
+PODCAST_GEN_TASK="patent-podcast-generator"
+
+##python3 -m spacy download en_core_web_sm
+
 PODCAST_PROMPT = """
 You are a world-class podcast producer tasked with transforming the provided input text into an engaging and informative podcast script. The input may be unstructured or messy, sourced from PDFs or web pages. Your goal is to extract the most interesting and insightful content for a compelling podcast discussion.
 

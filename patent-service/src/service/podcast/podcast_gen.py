@@ -1,9 +1,11 @@
 from typing import List, Literal, Tuple, Optional
 from pydantic import BaseModel, ValidationError
-from pypdf import PdfReader
+from langchain_community.callbacks import ClearMLCallbackHandler
+from langchain_core.callbacks import StdOutCallbackHandler
 
 from together import Together
 from cartesia import Cartesia
+from clearml import Task
 
 import subprocess
 import ffmpeg
@@ -39,29 +41,17 @@ class Podcast_Generator:
         load_dotenv()  # Make sure to load environment variables from .env file
         self.client_together = Together(api_key=os.getenv("TOGETHER_AI_API_KEY"))
         self.client_cartesia = Cartesia(api_key=os.getenv("CARTESIA_API_KEY"))
-
-    def get_PDF_info(self, pdf_file : str):
-        text = ''
-
-        # Read the PDF file and extract text
-        try:
-            with open(pdf_file, "rb") as f:
-                reader = PdfReader(f)
-                logger.info(f"Reading the text from {pdf_file} for generating podcast")
-                text = "\n\n".join([page.extract_text() for page in reader.pages])
-        except Exception as e:
-            logger.error(f"Error reading the PDF file ({pdf_file}): {str(e)}")
-            raise f"Error reading the PDF file: {str(e)}"
-            raise e
-
-            # Check if the PDF has more than ~400,000 characters
-            # The context length limit of the model is 131,072 tokens and thus the text should be less than this limit
-            # Assumes that 1 token is approximately 4 characters
-        if len(text) > 400000:
-            logger.error(f"PDF {pdf_file} is too long to generate the podcast")
-            raise "The PDF is too long. Please upload a PDF with fewer than ~131072 tokens."
-
-        return text
+        Task.init(const.CLEARML_PROJECT, const.PODCAST_GEN_TASK)
+        self.clearml_callback = ClearMLCallbackHandler(
+            task_type="testing",
+            project_name= const.CLEARML_PROJECT,
+            task_name= const.PODCAST_GEN_TASK,
+            tags=["podcast_gen"],                               
+            visualize=True,                               
+            complexity_metrics=True,                   
+            stream_logs=True                             
+        )
+        self.callbacks = [StdOutCallbackHandler(), self.clearml_callback]
 
     def call_llm(self, system_prompt: str, text: str, dialogue_format):
         """Call the LLM with the given prompt and dialogue format."""
@@ -75,6 +65,7 @@ class Podcast_Generator:
                 "type": "json_object",
                 "schema": dialogue_format.model_json_schema(),
             },
+            
         )
         return response
 
@@ -145,14 +136,16 @@ class Podcast_Generator:
         logger.info(f"Generating wav file for {pdf_file} at location {podcast_file}")
         ffmpeg.input(temp_podcast_pcm, format="f32le").output(podcast_file).run()
         
+        #self.clearml_callback.flush_tracker(langchain_asset=self.client_together, name="podcast_gen")
+        
         if os.path.exists(temp_podcast_pcm):
             os.remove(temp_podcast_pcm)
 
 
 podcast_gen = Podcast_Generator()
-pdf_file = const.INPUT_PATENT_DIR_PATH + "/US9736308.pdf"
-_, file_name_without_ext=utils.get_file_name(pdf_file)
-text = podcast_gen.get_PDF_info(pdf_file)
+pdf_file = const.INPUT_PATENT_DIR_PATH + "/US10612929.pdf"
+_, file_name_without_ext=utils.get_file_name_and_without_extension(pdf_file)
+text = utils.get_pdf_text(pdf_file)
 output_file = const.OUTPUT_DIR + '/podcast/'+file_name_without_ext
 script = podcast_gen.generate_script(const.PODCAST_PROMPT, text, Script, pdf_file, output_file + '.txt')
 podcast_gen.generate_podcast(script, output_file + '.wav', pdf_file)

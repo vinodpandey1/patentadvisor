@@ -1,0 +1,1 @@
+Script(scratchpad='Podcast Script: Discovering and Plotting the Boundary of an Enclosure (US010612929B2)', name_of_guest='Ali Ebrahimi Afrouzi', script=[])
