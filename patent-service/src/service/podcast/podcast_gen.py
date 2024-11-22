@@ -72,78 +72,85 @@ class Podcast_Generator:
     def generate_script(self, system_prompt: str, input_text: str, output_model, pdf_file, dialog_file):
         """Get the script from the LLM."""
         # Load as python object
-        try:
-            response = self.call_llm(system_prompt, input_text, output_model)
-            dialogue = output_model.model_validate_json(
-                response.choices[0].message.content
-            )
-            with open(dialog_file, "w") as f:
-                f.write(repr(dialogue))
-            logger.info(f"Generating dialog for {pdf_file} for generating podcast")
-        except ValidationError as e:
-            error_message = f"Failed to parse dialogue JSON: {e}"
-            logger.warn(f"Failed to parse dialogue JSON: {e}, retrying with LLM for pdf file {pdf_file}")
-            system_prompt_with_error = f"{system_prompt}\n\nPlease return a VALID JSON object. This was the earlier error: {error_message}"
-            response = self.call_llm(system_prompt_with_error, input_text, output_model)
-            dialogue = output_model.model_validate_json(
-                response.choices[0].message.content
-            )
-        return dialogue
+        if not utils.is_output_file_exists(dialog_file):
+            try:
+                response = self.call_llm(system_prompt, input_text, output_model)
+                dialogue = output_model.model_validate_json(
+                    response.choices[0].message.content
+                )
+                with open(dialog_file, "w") as f:
+                    f.write(repr(dialogue))
+                logger.info(f"Generating dialog for {pdf_file} for generating podcast")
+            except ValidationError as e:
+                error_message = f"Failed to parse dialogue JSON: {e}"
+                logger.warn(f"Failed to parse dialogue JSON: {e}, retrying with LLM for pdf file {pdf_file}")
+                system_prompt_with_error = f"{system_prompt}\n\nPlease return a VALID JSON object. This was the earlier error: {error_message}"
+                response = self.call_llm(system_prompt_with_error, input_text, output_model)
+                dialogue = output_model.model_validate_json(
+                    response.choices[0].message.content
+                )
+            return dialogue
+        else:
+            logger.info(f"Saving processing!! Dialog of {pdf_file} already exists at location {output_file}...")   
+            
     
     def generate_podcast(self, script, podcast_file, pdf_file):
         
-        host_id = "694f9389-aac1-45b6-b726-9d9369183238" # Jane - host voice
-        guest_id = "a0e99841-438c-4a64-b679-ae501e7d6091" # Guest voice
-        model_id = "sonic-english" # The Sonic Cartesia model for English TTS
-        output_format = {
-            "container": "raw",
-            "encoding": "pcm_f32le",
-            "sample_rate": 44100,
-            }
-        
-        temp_podcast_pcm = const.OUTPUT_DIR + "/podcast/podcast.pcm"
-        if os.path.exists(temp_podcast_pcm):
-            os.remove(temp_podcast_pcm)
-        if os.path.exists(podcast_file):
-            os.remove(podcast_file)
-        logger.info(f"Generating pcm for {pdf_file} at location {temp_podcast_pcm}")
-        
-        ws = self.client_cartesia.tts.websocket()
-        f = open(temp_podcast_pcm, "wb")
+        if not utils.is_output_file_exists(podcast_file):
+            
+            host_id = "694f9389-aac1-45b6-b726-9d9369183238" # Jane - host voice
+            guest_id = "a0e99841-438c-4a64-b679-ae501e7d6091" # Guest voice
+            model_id = "sonic-english" # The Sonic Cartesia model for English TTS
+            output_format = {
+                "container": "raw",
+                "encoding": "pcm_f32le",
+                "sample_rate": 44100,
+                }
+            
+            temp_podcast_pcm = const.OUTPUT_DIR + "/podcast/podcast.pcm"
+            if os.path.exists(temp_podcast_pcm):
+                os.remove(temp_podcast_pcm)
+            if os.path.exists(podcast_file):
+                os.remove(podcast_file)
+            logger.info(f"Generating pcm for {pdf_file} at location {temp_podcast_pcm}")
+            
+            ws = self.client_cartesia.tts.websocket()
+            f = open(temp_podcast_pcm, "wb")
 
-        # Generate and stream audio.
-        for line in script.script:
-            if line.speaker == "Guest":
-                voice_id = guest_id
-            else:
-                voice_id = host_id
+            # Generate and stream audio.
+            for line in script.script:
+                if line.speaker == "Guest":
+                    voice_id = guest_id
+                else:
+                    voice_id = host_id
 
-            for output in ws.send(
-                model_id=model_id,
-                transcript='-' + line.text, # the "-"" is to add a pause between speakers
-                voice_id=voice_id,
-                stream=True,
-                output_format=output_format,
-            ):
-                buffer = output["audio"]  # buffer contains raw PCM audio bytes
-                f.write(buffer)
+                for output in ws.send(
+                    model_id=model_id,
+                    transcript='-' + line.text, # the "-"" is to add a pause between speakers
+                    voice_id=voice_id,
+                    stream=True,
+                    output_format=output_format,
+                ):
+                    buffer = output["audio"]  # buffer contains raw PCM audio bytes
+                    f.write(buffer)
 
-        # Close the connection to release resources
-        ws.close()
-        f.close()
+            # Close the connection to release resources
+            ws.close()
+            f.close()
 
-        # Convert the raw PCM bytes to a WAV file.
-        logger.info(f"Generating wav file for {pdf_file} at location {podcast_file}")
-        ffmpeg.input(temp_podcast_pcm, format="f32le").output(podcast_file).run()
-        
-        #self.clearml_callback.flush_tracker(langchain_asset=self.client_together, name="podcast_gen")
-        
-        if os.path.exists(temp_podcast_pcm):
-            os.remove(temp_podcast_pcm)
-
+            # Convert the raw PCM bytes to a WAV file.
+            logger.info(f"Generating wav file for {pdf_file} at location {podcast_file}")
+            ffmpeg.input(temp_podcast_pcm, format="f32le").output(podcast_file).run()
+            
+            #self.clearml_callback.flush_tracker(langchain_asset=self.client_together, name="podcast_gen")
+            
+            if os.path.exists(temp_podcast_pcm):
+                os.remove(temp_podcast_pcm)
+        else:
+            logger.info(f"Saving processing!! Podcast of {pdf_file} already exists at location {podcast_file}...")   
 
 podcast_gen = Podcast_Generator()
-pdf_file = const.INPUT_PATENT_DIR_PATH + "/US10612929.pdf"
+pdf_file = const.INPUT_PATENT_DIR_PATH + "/US20190213407A1.pdf"
 _, file_name_without_ext=utils.get_file_name_and_without_extension(pdf_file)
 text = utils.get_pdf_text(pdf_file)
 output_file = const.OUTPUT_DIR + '/podcast/'+file_name_without_ext

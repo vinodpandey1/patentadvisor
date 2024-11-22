@@ -43,3 +43,20 @@ def get_pdf_text(pdf_file : str):
         raise "The PDF is too long. Please upload a PDF with fewer than ~131072 tokens."
 
     return text
+
+def get_file_contents(text_file : str):
+    text = ""
+    try:
+        with open(text_file, "r") as f:
+            text = f.read()
+    except Exception as e:
+        logger.error(f"Error reading the text file ({text_file}): {str(e)}")
+        raise f"Error reading the text file: {str(e)}"
+        raise e
+    return text
+
+def is_output_file_exists(output_file):
+    if os.path.exists(output_file):
+        return True
+    else:
+        return False
