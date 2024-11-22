@@ -1,33 +1,57 @@
 from service.metadataextraction.extractMetaData import process_multiple_pdfs
 from service import configReader
-from service.document import storeDocument
+from service.document import storeDocument, searchDocumentService
 import os
 from dotenv import load_dotenv
-
+from langchain.retrievers.self_query.base import SelfQueryRetriever
+import json
 load_dotenv()
 
-   
-def readMetaData():
+## This function will read the metadata from the documents and will store in database
+def readMetaDataAndStore():
     datasetPath = configReader.getDatasetPath()  # Replace with the path to your folder containing PDF files
     print(datasetPath)
-    metadata_dict = process_multiple_pdfs(datasetPath+"/documents")
-    print(metadata_dict)
+    metadata_dict, metadatainfo = process_multiple_pdfs(datasetPath+"/documents", 1)
+    # print(metadata_dict)
     # Display results
+
     for filename, metadata in metadata_dict.items():
         print(f"\nMetadata for {filename}:= \n")
         print(metadata)
+       
+        filename = os.path.basename(filename)
+        filename = filename.split('.')[0]
+        print(filename)
+        storeDocument.process_and_store_documents_from_metadata(datasetPath+"/documents",filename,metadata,configReader.getDatabaseDir())
         
+## This function will get the metadata info from the documents and store it in metadatainfo.json
+def getMetaDataInfo():
+    datasetPath = configReader.getDatasetPath()  # Replace with the path to your folder containing PDF files
+    print(datasetPath)
+    metadata_dict, metadatainfo = process_multiple_pdfs(datasetPath+"/documents", 1)
+    print("Metadata Info")
+    print(metadatainfo)
+
+    with open('metadatainfo.json', 'w') as json_file:
+        json.dump(metadatainfo, json_file, indent=4)
+    print("Metadata Info written to metadatainfo.json")
+
+
+## This function will store the documents in the database from given csv file
 def storeDocuments():
     metadatafilename = configReader.getProperty("metadatafilename")
     datasetPath = configReader.getDatasetPath()
-    storeDocument.process_and_store_documents(datasetPath+"/documents",datasetPath+"/"+metadatafilename,configReader.getDatabaseDir())
+    storeDocument.process_and_store_documents_from_csv(datasetPath+"/documents",datasetPath+"/"+metadatafilename,configReader.getDatabaseDir())
+    client, collection, vector_store = storeDocument.ChromaDBClient.get_collection(configReader.getDatabaseDir())
     
-# storeDocuments()
+    print("Collection ID:",collection.id)
+    print(f"Total Document Count is " ,collection.count())
+    ids = collection.get()['ids']
+    print(f"Document IDs: {ids}")
 
-client, collection = storeDocument.ChromaDBClient.get_collection(configReader.getDatabaseDir())
-print(collection.get("US8892906_1"))
-results = collection.query(
-    query_texts=["US Patent"], # Chroma will embed this for you
-    n_results=2 # how many results to return
-)
-# print(results)
+
+#getMetaDataInfo()
+#readMetaDataAndStore()
+#storeDocuments()
+#searchDocumentService.getQueryStructure("find patent where on of inventor is 'Raymond Kruck'")
+searchDocumentService.searchDocument("find patent where on of inventor is Raymond Kruck")

@@ -6,6 +6,7 @@ from langchain_openai import ChatOpenAI
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from llmtemplate.modelconfig import MODEL_CONFIGS, API_KEY_CONFIG
 import chromadb.utils.embedding_functions as embedding_functions
+from langchain_openai import OpenAIEmbeddings
 
 def getChatModel(model:str):
     
@@ -13,7 +14,7 @@ def getChatModel(model:str):
     
     if modelName is None:
         print(f"Model {model} not found in model config. Returning Default Model")
-        llm_chat = ChatOpenAI(model_name=modelName, temperature=0.7,openai_api_key=getAPIKey(modelName))
+        llm_chat = ChatOpenAI(model_name=modelName, temperature=0,openai_api_key=getAPIKey(modelName))
         return llm_chat
     
     else:    
@@ -48,4 +49,11 @@ def getEmbeddingFunction(model:str):
                 model_name=modelName
             )
     return openai_ef
-    
+
+def getEmbedding(model:str):
+    modelName = MODEL_CONFIGS[model]
+    embeddings = OpenAIEmbeddings(
+                api_key=getAPIKey(model),
+                model=modelName
+            )
+    return embeddings

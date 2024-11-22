@@ -7,16 +7,15 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_openai import ChatOpenAI
 from langchain_chroma import Chroma
-from langchain_core.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain.schema.runnable import RunnablePassthrough
-from langchain_community.vectorstores import FAISS
-from service import configReader
+
+from langchain_core.documents import Document
+from service import configReader, dbclient
+from langchain_postgres import PGVector
 from service.llm import chatmodel
 import pandas as pd
 import chromadb
 
-def process_and_store_documents(datasetDir,patentDataFile,db_storage_path):
+def process_and_store_documents_from_csv(datasetDir,patentDataFile,db_storage_path):
     # Load documents from the folder
     
     df = pd.read_csv(patentDataFile)
@@ -35,12 +34,24 @@ def process_and_store_documents(datasetDir,patentDataFile,db_storage_path):
         # # Create embeddings and store in FAISS
         store_document(db_storage_path,patentName, document_chunks,rowData)
 
+def process_and_store_documents_from_metadata(datasetDir,patentName, patentMetaData,db_storage_path):
+    # Load documents from the folder
+    
+    
+    documents = load_documents_from_folder(datasetDir, patentName)
+    
+    # # Split documents into chunks
+    document_chunks = split_documents(documents)
+    
+    # # Create embeddings and store in FAISS
+    store_document(db_storage_path,patentName, document_chunks,patentMetaData)
+
 def cleanData(patentData):
 
     # df = df.remove('Sr.No.', axis=1, inplace=True)
     return patentData
 
-# Function to load and display content from all PDF files in the folder
+# Function to find the document in the folder and read content
 def load_documents_from_folder(datasetDir, patentName):
     # List to store the content of all documents
     documents_content = {}
@@ -62,6 +73,7 @@ def load_documents_from_folder(datasetDir, patentName):
     # Return the dictionary with document names and their contents
     return documents_content
 
+# Function to find the document in the folder
 def fetch_file_from_directory(directory, patentDocumentName):
     file_paths = []
     for root, dirs, files in os.walk(directory):
@@ -73,38 +85,34 @@ def fetch_file_from_directory(directory, patentDocumentName):
 
 # Split documents into chunks
 def split_documents(documents):
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
     document_chunks = []
     for doc in documents.values():
         document_chunks.extend(text_splitter.split_documents(doc))
     return document_chunks
 
-# Create embeddings and store in FAISS
+# Create embeddings and store in Database. Using Langchain interface to stroe data in database
 def store_document(db_storage_path, documentname, document_chunks,metadata):
 
-
-    client, collection = ChromaDBClient.get_collection(db_storage_path)
+    print("storing documents")
+    client, collection, vector_store = dbclient.getDBClient()
     i=0
-    for chunk in document_chunks:
-        i=i+1
-        print(chunk.id)
-        print(chunk.page_content)
-        collection.add(
-            documents=[chunk.page_content],
-            metadatas=[metadata],
-            ids=[documentname+"_"+str(i)]
-        )    
+    documents =[]
+    if isinstance(metadata, str):
+        metadata = eval(metadata)
+    print(type(metadata))
+    print(metadata)
+    if(len(document_chunks)==0):    
+        print("No content found for document", {documentname})
+    else:
+        for chunk in document_chunks:
+            i=i+1
 
-class ChromaDBClient:
-    _client = None
-    _collection = None
+            document_temp = Document(
+            page_content=chunk.page_content,
+            metadata=metadata,
+            id=documentname+"_"+str(i)
+            )
+            documents.append(document_temp)
 
-    @staticmethod
-    def get_collection(persist_directory,collection_name="patentdocuments"):
-            
-        emb_fn = chatmodel.getEmbeddingFunction("openai-embedding")
-        if ChromaDBClient._client is None:
-            ChromaDBClient._client = chromadb.PersistentClient(path=persist_directory)
-            ChromaDBClient._collection = ChromaDBClient._client.get_or_create_collection(collection_name,embedding_function=emb_fn)
-        return ChromaDBClient._client,ChromaDBClient._collection
- 
+        vector_store.add_documents(documents, ids=[doc.id for doc in documents])   
