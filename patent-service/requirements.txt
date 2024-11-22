@@ -7,18 +7,21 @@ langchain-community
 langchain-huggingface
 langchain-chroma
 
+gTTS
 chromadb
 cartesia
 together
 ffmpeg-python
 
-
+spacy
+matplotlib
 pypdf
 pdfplumber
 pydantic
 typing
 together
 sentence-transformers
+python-dotenv
 
 pandas
 numpy
