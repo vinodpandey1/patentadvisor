@@ -11,47 +11,68 @@ from langchain.chains.query_constructor.base import (
     get_query_constructor_prompt,
     load_query_constructor_runnable,
 )
-
+from langchain_core.structured_query import (
+    Comparator,
+    Comparison,
+    FilterDirective,
+    Operation,
+    Operator,
+    StructuredQuery,
+)
 
 def searchDocument(query):
 
     client, collection, vector_store = dbclient.getDBClient()
    
     lst = ['US10282512B2']
-    filter_dict = {'PatentNumber':'US10282512B2'}
+    # filter_dict = {'TechnologyKeywords': {'$like': '%Digital Music%'}}
     
     llm = getChatModel("gpt-4")
     llm.temperature = 0
     
-    document_content_description = "Patent Detail"
-    self_retriever = SelfQueryRetriever.from_llm(
-    llm = llm,
-    vectorstore = vector_store,
-    document_contents = document_content_description,
-    metadata_field_info = metadatainfo.metadata_field_info,
-    structured_query_translator=PGVectorTranslator(),
-    verbose=True
-    )
+    # document_content_description = "Patent Detail"
+    # self_retriever = SelfQueryRetriever.from_llm(
+    # llm = llm,
+    # vectorstore = vector_store,
+    # document_contents = document_content_description,
+    # metadata_field_info = metadatainfo.metadata_field_info,
+    # structured_query_translator=PGVectorTranslator(),
+    # verbose=True
+    # )
     # print("Self Retriever Result")
     # print(self_retriever.invoke(query))
     
     
-    retriever = vector_store.as_retriever(
-    search_type="mmr", search_kwargs={"k": 1, 'filter':filter_dict}
-    )
-    results = retriever.invoke(query)
+    # retriever = vector_store.as_retriever(
+    # search_type="mmr", search_kwargs={"k": 1, 'filter':filter_dict}
+    # )
+    # results = retriever.invoke(query)
     
-    print("fetching results")
-    for result in results:
-        print("\n")
-        print(result)
+    # print("fetching results")
+    # for result in results:
+    #     print("\n")
+    #     print(result)
   
     print("fetching similarity search results")
+    filter_dict=getQueryStructure(query)
     results = vector_store.similarity_search(
-        query=query, k=1
+        query=query, k=2, filter=filter_dict, where_document=filter_dict, verbose=True
     )
+    documentList=[]
+    documentIdList=[]
+    print(results)
     for doc in results: 
-        print(f"* [{doc.metadata}]")
+        print(f"* [{doc.page_content}]")
+        print(f"* [{doc.id}]")
+        
+        patentId = doc.id.split("_")[0]
+        if(patentId not in documentIdList):
+            print("PatentID:",patentId)
+            documentList.append(doc.metadata)
+            documentIdList.append(patentId)
+    return documentList
+        
+        
     
 def getDocument(id):
      client, collection, vector_store = dbclient.getDBClient()
@@ -63,20 +84,30 @@ def getQueryStructure(query):
     
     prompt = get_query_constructor_prompt(
     document_contents = document_content_description,
-    attribute_info = metadatainfo.metadata_field_info,    
+    attribute_info = metadatainfo.metadata_field_info, 
     )
     
+    # print(prompt)
     llm = getChatModel("gpt-4")
     llm.temperature = 0
     output_parser = StructuredQueryOutputParser.from_components()
     query_constructor = prompt | llm | output_parser
     
-    print(query_constructor.invoke(
+    result = query_constructor.invoke(
         {
         "query": query
         }
-    ))
-    
+    )
+    print(result)
+    if(result.filter is not None):
+        structured_query_translator=PGVectorTranslator()
+        structureQuery = structured_query_translator.visit_structured_query(result)
+        # print(structureQuery)
+        filter = extract_filter_from_tuple(structureQuery)
+        filter = update_operators(filter)
+        print("Filter :",filter)
+        return filter
+    return None
     # chain = load_query_constructor_runnable(
     # llm = llm, document_contents = document_content_description,
     # attribute_info = metadatainfo.metadata_field_info)
@@ -88,3 +119,21 @@ def getQueryStructure(query):
     #     }
     # ))
     
+def extract_filter_from_tuple(result):
+    if isinstance(result, tuple) and len(result) == 2:
+        _, filter_dict = result
+        if 'filter' in filter_dict:
+            return filter_dict['filter']
+    return None
+
+def update_operators(filter_dict):
+    valid_operators = ["eq", "neq", "gt", "lt", "gte", "lte", "like", "ilike"]
+    updated_filter = {}
+    for key, value in filter_dict.items():
+        if isinstance(value, dict):
+            updated_value = {}
+            for op, val in value.items():
+                if op in valid_operators:
+                    updated_value[f"${op}"] = val
+            updated_filter[key] = updated_value
+    return updated_filter

@@ -14,7 +14,7 @@ def getChatModel(model:str):
     
     if modelName is None:
         print(f"Model {model} not found in model config. Returning Default Model")
-        llm_chat = ChatOpenAI(model_name=modelName, temperature=0,openai_api_key=getAPIKey(modelName))
+        llm_chat = ChatOpenAI(model_name=modelName, temperature=0.7,openai_api_key=getAPIKey(modelName))
         return llm_chat
     
     else:    

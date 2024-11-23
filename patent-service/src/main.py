@@ -53,5 +53,5 @@ def storeDocuments():
 #getMetaDataInfo()
 #readMetaDataAndStore()
 #storeDocuments()
-#searchDocumentService.getQueryStructure("find patent where on of inventor is 'Raymond Kruck'")
-searchDocumentService.searchDocument("find patent where on of inventor is Raymond Kruck")
+#searchDocumentService.getQueryStructure("find patent where technology Digital Music") 
+#searchDocumentService.getQueryStructure("find patent for patent number US010854180B2") 
