@@ -91,7 +91,7 @@ def fetch_file_from_directory(directory, patentDocumentName):
 
 # Split documents into chunks
 def split_documents(documents):
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     document_chunks = []
     for doc in documents.values():
         document_chunks.extend(text_splitter.split_documents(doc))

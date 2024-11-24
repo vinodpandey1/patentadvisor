@@ -4,10 +4,14 @@ from langchain_postgres import PGVector
 from service.llm import chatmodel
 import chromadb
 
+import os
 from service import configReader
+from supabase import create_client
+from langchain.vectorstores import SupabaseVectorStore
 
 def getDBClient(collectionName):
     
+
     if collectionName is None:
         collectionName = "patentdocuments"
     database = configReader.getProperty("database")  
@@ -16,6 +20,8 @@ def getDBClient(collectionName):
         return ChromaDBClient.get_collection(persist_directory)
     if database == "postgres":
         return PostgreSQLDBClient.get_collection(collectionName)
+    if database == "supabase":
+        return SupabaseDBClient.get_collection(collectionName)
 
 class ChromaDBClient:
     _client = None
@@ -57,3 +63,47 @@ class PostgreSQLDBClient:
              use_jsonb=True,
             )   
         return PostgreSQLDBClient._client,PostgreSQLDBClient._collection,PostgreSQLDBClient._vectorStore
+    
+class SupabaseDBClient:
+    _client = None
+    _collection = None
+    _vectorStore = None
+    
+    @staticmethod
+    def get_collection(collection_name):
+            
+       
+        embeddings = chatmodel.getEmbedding("openai-embedding")
+        SupabaseDBClient._client = initialize_supabase()
+        
+        SupabaseDBClient._vectorStore = SupabaseVectorStore(
+             client=SupabaseDBClient._client,
+             table_name=collection_name,
+             embedding=embeddings,
+        )   
+        
+        
+        return SupabaseDBClient._client,SupabaseDBClient._collection,SupabaseDBClient._vectorStore
+    
+def initialize_supabase():
+    """
+    Initializes the Supabase client using credentials from the .env file.
+    
+    Returns:
+        Client: Supabase client instance.
+    """
+    try:
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_KEY')
+        
+        if not all([supabase_url, supabase_key]):
+            print("Supabase credentials are missing in the .env file.")
+            return None
+        
+        supabase = create_client(supabase_url, supabase_key)
+        print("Supabase client initialized successfully.")
+        return supabase
+    
+    except Exception as e:
+        print(f"Failed to initialize Supabase client: {e}")
+        return None
