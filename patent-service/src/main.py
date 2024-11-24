@@ -51,7 +51,7 @@ def storeDocuments():
 
 
 #getMetaDataInfo()
-#readMetaDataAndStore()
+readMetaDataAndStore()
 #storeDocuments()
 #searchDocumentService.getQueryStructure("find patent where technology Digital Music") 
 #searchDocumentService.getQueryStructure("find patent for patent number US010854180B2") 

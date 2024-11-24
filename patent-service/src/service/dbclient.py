@@ -6,13 +6,16 @@ import chromadb
 
 from service import configReader
 
-def getDBClient():
+def getDBClient(collectionName):
+    
+    if collectionName is None:
+        collectionName = "patentdocuments"
     database = configReader.getProperty("database")  
     if database == "chroma":
-        persist_directory=configReader.getDatabaseDir()
+        persist_directory=configReader.getDatabaseDir(collectionName)
         return ChromaDBClient.get_collection(persist_directory)
     if database == "postgres":
-        return PostgreSQLDBClient.get_collection()
+        return PostgreSQLDBClient.get_collection(collectionName)
 
 class ChromaDBClient:
     _client = None
@@ -40,16 +43,17 @@ class PostgreSQLDBClient:
     _vectorStore = None
     
     @staticmethod
-    def get_collection(collection_name="patentdocuments"):
+    def get_collection(collection_name):
             
        
-        if PostgreSQLDBClient._client is None:
-            embeddings = chatmodel.getEmbedding("openai-embedding")
-            PostgreSQLDBClient._client = configReader.getProperty("postgreSQLURL")
-            PostgreSQLDBClient._vectorStore = PGVector(
+       
+        embeddings = chatmodel.getEmbedding("openai-embedding")
+        PostgreSQLDBClient._client = configReader.getProperty("postgreSQLURL")
+        
+        PostgreSQLDBClient._vectorStore = PGVector(
              connection=PostgreSQLDBClient._client,
              collection_name=collection_name,
              embeddings=embeddings,
              use_jsonb=True,
-            )
+            )   
         return PostgreSQLDBClient._client,PostgreSQLDBClient._collection,PostgreSQLDBClient._vectorStore

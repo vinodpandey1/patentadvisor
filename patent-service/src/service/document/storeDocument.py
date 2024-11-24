@@ -41,10 +41,16 @@ def process_and_store_documents_from_metadata(datasetDir,patentName, patentMetaD
     documents = load_documents_from_folder(datasetDir, patentName)
     
     # # Split documents into chunks
+    
+    
+    text_chunks = split_text(patentMetaData)
+    
     document_chunks = split_documents(documents)
     
     # # Create embeddings and store in FAISS
-    store_document(db_storage_path,patentName, document_chunks,patentMetaData)
+    store_document("patentdocuments",patentName, text_chunks,patentMetaData)
+    
+    store_document("patentdocumentdetail",patentName, document_chunks,patentMetaData)
 
 def cleanData(patentData):
 
@@ -91,11 +97,17 @@ def split_documents(documents):
         document_chunks.extend(text_splitter.split_documents(doc))
     return document_chunks
 
+def split_text(text):
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+    document_chunks = []
+    document_chunks.extend(text_splitter.split_text(text))
+    return document_chunks
+
 # Create embeddings and store in Database. Using Langchain interface to stroe data in database
-def store_document(db_storage_path, documentname, document_chunks,metadata):
+def store_document(collectionName, documentname, document_chunks,metadata):
 
     print("storing documents")
-    client, collection, vector_store = dbclient.getDBClient()
+    client, collection, vector_store = dbclient.getDBClient(collectionName)
     i=0
     documents =[]
     if isinstance(metadata, str):
@@ -107,9 +119,14 @@ def store_document(db_storage_path, documentname, document_chunks,metadata):
     else:
         for chunk in document_chunks:
             i=i+1
-
+            print(chunk)
+            
+            if not hasattr(chunk, 'page_content'):
+                text=chunk
+            else:
+                text=chunk.page_content
             document_temp = Document(
-            page_content=chunk.page_content,
+            page_content=text,
             metadata=metadata,
             id=documentname+"_"+str(i)
             )

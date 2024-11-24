@@ -1,112 +1,112 @@
 from langchain.chains.query_constructor.base import AttributeInfo
 metadata_field_info = [
     AttributeInfo(
-        name= "PatentNumber",
+        name= "patentNumber",
         description= "The unique identifier for the patent",
         type= "string"
     ),
     AttributeInfo(
-        name= "ApplicationNumber",
+        name= "applicationNumber",
         description= "The application number for the patent",
         type= "string"
     ),
     AttributeInfo(
-        name= "FilingDate",
+        name= "filingDate",
         description= "The date when the patent application was filed",
         type= "date"
     ),
     AttributeInfo(
-        name= "GrantDate",
+        name= "grantDate",
         description= "The date when the patent was granted",
         type= "date"
     ),
     AttributeInfo(
-        name= "PublicationDate",
+        name= "publicationDate",
         description= "The date when the patent was published",
         type= "date"
     ),
     AttributeInfo(
-        name= "Title",
+        name= "title",
         description= "The title of the patent",
         type= "string"
     ),
     AttributeInfo(
-        name= "Abstract",
+        name= "abstract",
         description= "A summary of the patent",
         type= "string"
     ),
     AttributeInfo(
-        name= "Inventor(s)",
+        name= "inventors",
         description= "The inventor(s) of the patent",
         type= "list"
     ),
     AttributeInfo(
-        name= "Assignee(s)",
+        name= "assignees",
         description= "The assignee(s) of the patent",
         type= "list"
     ),
     AttributeInfo(
-        name= "Claims",
+        name= "claims",
         description= "The number of claims and drawing sheets of the patent",
         type= "string"
     ),
     AttributeInfo(
-        name= "CountryOfFiling",
+        name= "countryOfFiling",
         description= "The country where the patent was filed",
         type= "string"
     ),
     AttributeInfo(
-        name= "PatentAuthority",
+        name= "patentAuthority",
         description= "The patent authority responsible for granting the patent",
         type= "string"
     ),
     AttributeInfo(
-        name= "Domain",
+        name= "domain",
         description= "The domain or field of the patent",
         type= "string"
     ),
     AttributeInfo(
-        name= "Industry",
+        name= "industry",
         description= "The industry related to the patent",
         type= "string"
     ),
     AttributeInfo(
-        name= "BusinessLine",
+        name= "businessLine",
         description= "The business line related to the patent",
         type= "string"
     ),
     AttributeInfo(
-        name= "ApplicationArea",
+        name= "applicationArea",
         description= "The application area of the patent",
         type= "string"
     ),
     AttributeInfo(
-        name= "Sector",
+        name= "sector",
         description= "The sector of the patent",
         type= "string"
     ),
     AttributeInfo(
-        name= "LegalStatus",
+        name= "legalStatus",
         description= "The legal status of the patent",
         type= "string"
     ),
     AttributeInfo(
-        name= "ProvisionalApplicationDate",
+        name= "provisionalApplicationDate",
         description= "The date of the provisional patent application",
         type= "date"
     ),
     AttributeInfo(
-        name= "TechnologyKeywords",
+        name= "technologyKeywords",
         description= "Keywords related to the technology of the patent",
         type= "string"
     ),
     AttributeInfo(
-        name= "AssigneeType",
+        name= "assigneeType",
         description= "The type of assignee(s) of the patent",
         type= "string"
     ),
     AttributeInfo(
-        name= "MarketRelevanceIndicators",
+        name= "marketRelevanceIndicators",
         description= "Indicators of market relevance for the patent",
         type= "string"
     )

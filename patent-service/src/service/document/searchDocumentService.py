@@ -22,7 +22,7 @@ from langchain_core.structured_query import (
 
 def searchDocument(query):
 
-    client, collection, vector_store = dbclient.getDBClient()
+    client, collection, vector_store = dbclient.getDBClient("patentdocuments")
    
     lst = ['US10282512B2']
     # filter_dict = {'TechnologyKeywords': {'$like': '%Digital Music%'}}
@@ -56,11 +56,11 @@ def searchDocument(query):
     print("fetching similarity search results")
     filter_dict=getQueryStructure(query)
     results = vector_store.similarity_search(
-        query=query, k=2, filter=filter_dict, where_document=filter_dict, verbose=True
+        query=query, k=10, filter=filter_dict, where_document=filter_dict, verbose=True
     )
     documentList=[]
     documentIdList=[]
-    print(results)
+    # print(results)
     for doc in results: 
         print(f"* [{doc.page_content}]")
         print(f"* [{doc.id}]")
@@ -69,13 +69,15 @@ def searchDocument(query):
         if(patentId not in documentIdList):
             print("PatentID:",patentId)
             documentList.append(doc.metadata)
+            data = doc.metadata
+            data['filename'] = f"{patentId}.pdf"
             documentIdList.append(patentId)
     return documentList
         
         
     
 def getDocument(id):
-     client, collection, vector_store = dbclient.getDBClient()
+     client, collection, vector_store = dbclient.getDBClient("patentdocuments")
      collection.get(id,include=['metadatas'])
 
 def getQueryStructure(query):
@@ -85,6 +87,7 @@ def getQueryStructure(query):
     prompt = get_query_constructor_prompt(
     document_contents = document_content_description,
     attribute_info = metadatainfo.metadata_field_info, 
+    allowed_comparators=['lte', 'exists', 'ne', 'or', 'gt', 'eq', 'and', 'gte', 'nin', 'not', 'like', 'ilike', 'in', '$lt', 'between']
     )
     
     # print(prompt)
@@ -102,7 +105,7 @@ def getQueryStructure(query):
     if(result.filter is not None):
         structured_query_translator=PGVectorTranslator()
         structureQuery = structured_query_translator.visit_structured_query(result)
-        # print(structureQuery)
+        print(structureQuery)
         filter = extract_filter_from_tuple(structureQuery)
         filter = update_operators(filter)
         print("Filter :",filter)
@@ -127,13 +130,16 @@ def extract_filter_from_tuple(result):
     return None
 
 def update_operators(filter_dict):
-    valid_operators = ["eq", "neq", "gt", "lt", "gte", "lte", "like", "ilike"]
+    valid_operators = ["eq", "neq", "gt", "lt", "gte", "lte", "like", "ilike"] 
     updated_filter = {}
     for key, value in filter_dict.items():
         if isinstance(value, dict):
             updated_value = {}
             for op, val in value.items():
-                if op in valid_operators:
+                if op in valid_operators:                    
+                    if op == "like":
+                        val = f"%{val}%"
                     updated_value[f"${op}"] = val
             updated_filter[key] = updated_value
+    
     return updated_filter

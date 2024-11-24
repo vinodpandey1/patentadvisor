@@ -14,8 +14,8 @@ metadataprompt = """
     5.Publication Date
     6.Title
     7.Abstract
-    8.Inventor(s)
-    9.Assignee(s)
+    8.Inventors
+    9.Assignees
     10.Claims
     11.Country of Filing
     12.Patent Authority
@@ -33,10 +33,11 @@ metadataprompt = """
     find out all these information from first two pages of patent
     and some information like Domain, Industry, Business Line, Application Area, Sector from title and abstract of patent
     Keep full value of Abstract and Claims
-    Remove space in attribute name and make camel cas
+    Remove space in attribute name and make camel case
     Remove space between attribute name and colon(:) and between colon(:) and attribute value
     Remove trailing and leading spaces from attribute value
-    keep date format as dd//mm/yyyy
+    keep date format as dd//mm/yyyy and type as date
+    if not able to find any attribute then keep it as blank string and not null value
     Text:
     {content}  # Limit input to first 4000 characters if it's long (due to token limits)
     
