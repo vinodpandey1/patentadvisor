@@ -9,7 +9,6 @@ import src.utils as utils
 from src import constants as const
 from dotenv import load_dotenv
 
-
 # Load environment variables from .env file
 load_dotenv()
 
@@ -68,7 +67,7 @@ class PatentAdvisorPipeLine:
         pdf_files = [obj['Key'] for obj in response['Contents'] if obj['Key'].lower().endswith('.pdf')]
         logger.info(f"Found {len(pdf_files)} PDF files in bucket.")
         for pdf_key in pdf_files:
-            trigger_pipeline_for_pdf(pdf_key, pipeline_type)
+            self.trigger_pipeline_for_pdf(pdf_key, pipeline_type)
 
     def trigger_pipeline_for_pdf(self, pdf_key, pipeline_type):
         try:
@@ -108,8 +107,6 @@ class PatentAdvisorPipeLine:
                                            + pdf_file_name_without_ext + '.wav')
                 logger.info(f"Uploaded podcast file to {self.podcast_dir_prefix}/{pdf_file_name_without_ext}.wav"
                             f" in bucket {self.bucket_name}")
-
-            exit()
         except Exception as e:
             logger.error(f"Error processing PDF {pdf_key}: {str(e)}")
 
