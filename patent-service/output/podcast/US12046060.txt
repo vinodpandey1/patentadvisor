@@ -1,1 +1,0 @@
-Script(scratchpad='', name_of_guest='', script=[])
