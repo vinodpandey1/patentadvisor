@@ -21,6 +21,7 @@ import src.utils as utils
 config.fileConfig(const.CONFIG_DIR + "/logging.conf")
 logger = logging.getLogger("patent")
 
+
 class LineItem(BaseModel):
     """A single line in the script."""
 
@@ -35,13 +36,14 @@ class Script(BaseModel):
     name_of_guest: str
     script: List[LineItem]
 
-class Podcast_Generator:
+
+class PodcastGenerator:
     
     def __init__(self):
         load_dotenv()  # Make sure to load environment variables from .env file
         self.client_together = Together(api_key=os.getenv("TOGETHER_AI_API_KEY"))
         self.client_cartesia = Cartesia(api_key=os.getenv("CARTESIA_API_KEY"))
-        Task.init(const.CLEARML_PROJECT, const.PODCAST_GEN_TASK)
+        '''Task.init(const.CLEARML_PROJECT, const.PODCAST_GEN_TASK)
         self.clearml_callback = ClearMLCallbackHandler(
             task_type="testing",
             project_name= const.CLEARML_PROJECT,
@@ -51,7 +53,7 @@ class Podcast_Generator:
             complexity_metrics=True,                   
             stream_logs=True                             
         )
-        self.callbacks = [StdOutCallbackHandler(), self.clearml_callback]
+        self.callbacks = [StdOutCallbackHandler(), self.clearml_callback]'''
 
     def call_llm(self, system_prompt: str, text: str, dialogue_format):
         """Call the LLM with the given prompt and dialogue format."""
@@ -72,29 +74,28 @@ class Podcast_Generator:
     def generate_script(self, system_prompt: str, input_text: str, output_model, pdf_file, dialog_file):
         """Get the script from the LLM."""
         # Load as python object
-        if not utils.is_output_file_exists(dialog_file):
-            try:
-                response = self.call_llm(system_prompt, input_text, output_model)
-                dialogue = output_model.model_validate_json(
-                    response.choices[0].message.content
-                )
-                with open(dialog_file, "w") as f:
-                    f.write(repr(dialogue))
-                logger.info(f"Generating dialog for {pdf_file} for generating podcast")
-            except ValidationError as e:
-                error_message = f"Failed to parse dialogue JSON: {e}"
-                logger.warn(f"Failed to parse dialogue JSON: {e}, retrying with LLM for pdf file {pdf_file}")
-                system_prompt_with_error = f"{system_prompt}\n\nPlease return a VALID JSON object. This was the earlier error: {error_message}"
-                response = self.call_llm(system_prompt_with_error, input_text, output_model)
-                dialogue = output_model.model_validate_json(
-                    response.choices[0].message.content
-                )
-            return dialogue
-        else:
-            logger.info(f"Saving processing!! Dialog of {pdf_file} already exists at location {output_file}...")   
-            
+        try:
+            if len(input_text) > 400000:
+                logger.error(f"The PDF {pdf_file} is too long. Please upload a PDF with fewer than ~131072 tokens.")
+                raise "The PDF is too long. Please upload a PDF with fewer than ~131072 tokens."
+            response = self.call_llm(system_prompt, input_text, output_model)
+            dialogue = output_model.model_validate_json(
+                response.choices[0].message.content
+            )
+            with open(dialog_file, "w") as f:
+                f.write(repr(dialogue))
+            logger.info(f"Generating dialog for {pdf_file} for generating podcast at {dialog_file}")
+        except ValidationError as e:
+            error_message = f"Failed to parse dialogue JSON: {e}"
+            logger.warn(f"Failed to parse dialogue JSON: {e}, retrying with LLM for pdf file {pdf_file}")
+            system_prompt_with_error = f"{system_prompt}\n\nPlease return a VALID JSON object. This was the earlier error: {error_message}"
+            response = self.call_llm(system_prompt_with_error, input_text, output_model)
+            dialogue = output_model.model_validate_json(
+                response.choices[0].message.content
+            )
+        return dialogue
     
-    def generate_podcast(self, script, podcast_file, pdf_file):
+    def generate_podcast(self, script, pdf_file, podcast_file):
         
         if not utils.is_output_file_exists(podcast_file):
             
@@ -149,10 +150,12 @@ class Podcast_Generator:
         else:
             logger.info(f"Saving processing!! Podcast of {pdf_file} already exists at location {podcast_file}...")   
 
-podcast_gen = Podcast_Generator()
-pdf_file = const.INPUT_PATENT_DIR_PATH + "/US20190213407A1.pdf"
-_, file_name_without_ext=utils.get_file_name_and_without_extension(pdf_file)
-text = utils.get_pdf_text(pdf_file)
-output_file = const.OUTPUT_DIR + '/podcast/'+file_name_without_ext
-script = podcast_gen.generate_script(const.PODCAST_PROMPT, text, Script, pdf_file, output_file + '.txt')
-podcast_gen.generate_podcast(script, output_file + '.wav', pdf_file)
+
+if __name__ == "__main__":
+    podcast_gen = PodcastGenerator()
+    pdf_file = const.INPUT_PATENT_DIR_PATH + "/MoA.pdf"
+    _, file_name_without_ext=utils.get_file_name_and_without_extension(pdf_file)
+    text = utils.get_pdf_text(pdf_file)
+    output_file = const.OUTPUT_DIR + '/podcast/'+file_name_without_ext
+    script = podcast_gen.generate_script(const.PODCAST_PROMPT, text, Script, pdf_file, output_file + '.txt')
+    podcast_gen.generate_podcast(script, pdf_file, output_file + '.wav')

@@ -4,7 +4,7 @@ import sys
 ROOT_DIR = os.path.abspath(os.curdir)
 CONFIG_DIR = ROOT_DIR + "/config"
 OUTPUT_DIR=ROOT_DIR + "/output"
-INPUT_PATENT_DIR_PATH=ROOT_DIR + "/dataset/documents/AI_PATENT"
+INPUT_PATENT_DIR_PATH=ROOT_DIR + "/dataset/documents"
 
 CLEARML_PROJECT="ai-patent-advisor"
 SUMMARISATION_TASK="patent-summarizer"

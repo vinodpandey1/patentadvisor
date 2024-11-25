@@ -1,5 +1,5 @@
-openai
-clearml
+openai~=1.55.0
+clearml~=1.16.5
 
 langchain-openai
 langchain-core
@@ -7,23 +7,30 @@ langchain-community
 langchain-huggingface
 langchain-chroma
 
-gTTS
-chromadb
-cartesia
-together
+gTTS~=2.5.4
+chromadb~=0.5.20
+cartesia~=1.2.0
+together~=1.3.5
 ffmpeg-python
+fastapi~=0.115.5
+uvicorn~=0.32.1
+textblob~=0.18.0.post0
+boto3~=1.35.68
 
-spacy
+#spacy
 matplotlib
-pypdf
-pdfplumber
-pydantic
-typing
+pypdf~=5.1.0
+pdfplumber~=0.11.4
+pydantic~=2.10.1
+typing~=3.7.4.3
 together
 sentence-transformers
-python-dotenv
+python-dotenv~=1.0.1
 
-pandas
-numpy
+pandas~=2.2.3
+numpy~=1.26.4
 seaborn
-torch
+torch~=2.5.1
+langchain~=0.3.8
+transformers~=4.46.3
+botocore~=1.35.68

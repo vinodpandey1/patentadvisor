@@ -1,3 +1,4 @@
+import io
 import os
 from pypdf import PdfReader
 
@@ -43,6 +44,22 @@ def get_pdf_text(pdf_file : str):
         raise "The PDF is too long. Please upload a PDF with fewer than ~131072 tokens."
 
     return text
+
+
+def get_pdf_text_from_s3(pdf_data, pdf_file_name):
+    text = ''
+    try:
+        reader = PdfReader(io.BytesIO(pdf_data))
+
+        # Extract text from each page
+        pdf_text = ""
+        for page in reader.pages:
+            pdf_text += page.extract_text()
+    except Exception as e:
+        logger.error(f"Error reading the PDF file ({pdf_file_name}): {str(e)}")
+        raise f"Error reading the PDF file: {str(e)}"
+    return text
+
 
 def get_file_contents(text_file : str):
     text = ""

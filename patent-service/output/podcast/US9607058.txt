@@ -1,0 +1,1 @@
+Script(scratchpad='Let\'s create a podcast script based on the provided text. We\'ll start with an engaging hook to grab the listener\'s attention.", ', name_of_guest='Vivek Gupta', script=[])
