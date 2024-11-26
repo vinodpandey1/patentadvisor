@@ -4,6 +4,7 @@ import boto3
 from src.service.audio.gen_audio import AudioGenerator
 from src.service.podcast.podcast_gen import PodcastGenerator, Script
 from src.service.summarization.patent_summarizer import PdfPatentSummarizer
+from src.service.metadataextraction import extractMetaData
 from src.utils import logger
 import src.utils as utils
 from src import constants as const
@@ -78,6 +79,9 @@ class PatentAdvisorPipeLine:
             pdf_text_content = utils.get_pdf_text_from_s3(pdf_content, pdf_key)
             pdf_file_name, pdf_file_name_without_ext = utils.get_file_name_and_without_extension(pdf_key)
 
+            if pipeline_type == "meta" or pipeline_type == "all":
+                extractMetaData.extract_metadata_with_llm(pdf_text_content)
+
             summary_output_file = const.OUTPUT_DIR + '/summary/' + pdf_file_name_without_ext + '.txt'
             if pipeline_type == "summary" or pipeline_type == "all" or pipeline_type == "audio":
                 self.patent_summarizer.summarize_text(pdf_text_content, pdf_file_name, summary_output_file)
@@ -107,6 +111,8 @@ class PatentAdvisorPipeLine:
                                            + pdf_file_name_without_ext + '.wav')
                 logger.info(f"Uploaded podcast file to {self.podcast_dir_prefix}/{pdf_file_name_without_ext}.wav"
                             f" in bucket {self.bucket_name}")
+
+
         except Exception as e:
             logger.error(f"Error processing PDF {pdf_key}: {str(e)}")
 

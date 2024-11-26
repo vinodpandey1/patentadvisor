@@ -17,9 +17,10 @@ def main():
     parser = argparse.ArgumentParser(description="My script that accepts arguments")
 
     # Add arguments
-    parser.add_argument('--job', type=str, help="Name of job (upload/trigger_pipeline")
-    parser.add_argument('--upload_path', type=str, help="Path to upload pdf files")
-    parser.add_argument('--type', type=str, help="Type of pipeline job", default="all")
+    parser.add_argument('--job', type=str, help="Name of job (upload/trigger_pipeline", required=True)
+    parser.add_argument('--upload_path', type=str, help="Path to upload pdf files", required=False)
+    parser.add_argument('--type', type=str, help="Type of pipeline job", default="all", required=False)
+    parser.add_argument('--s3_file', type=str, help="Name of file in s3 for which to trigger pipeline job", required=False)
 
     # Parse the arguments
     args = parser.parse_args()
@@ -34,7 +35,11 @@ def main():
         for f in files:
             pipeline.upload_file(os.path.join(dir_path, f))
     elif args.job == "trigger_pipeline":
-        pipeline.trigger_pipeline(args.type)
+        if args.s3_file:
+            logger.info(f"User triggering pipeline for s3 file {args.s3_file}")
+            pipeline.trigger_pipeline_for_pdf(args.s3_file, args.type)
+        else:
+            pipeline.trigger_pipeline(args.type)
     else:
         logger.info(f"Invalid job passed {args}")
 
@@ -44,4 +49,4 @@ if __name__ == "__main__":
 
 
 #python3 -m main --job upload --upload_path /Users/amitarora/workspace/poc-workspace/capstone/patentadvisor/patent-service/dataset/documents/test_dir
-#python3 -m main --job trigger_pipeline --type all
+#python3 -m main --job trigger_pipeline <--type all/image/summary/audio/podcast> <--s3_file upload/Pdf_name.pdf>
