@@ -101,6 +101,7 @@ class DocumentProcessor:
         documents = []
         if isinstance(metadata, str):
             metadata = eval(metadata)
+        metadata = {k.lower(): v for k, v in metadata.items()}
         if len(chunks) == 0:
             logger.error("No content found for document", {self.pdf_file_name})
         else:

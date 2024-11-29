@@ -27,6 +27,7 @@ typing~=3.7.4.3
 together
 sentence-transformers
 python-dotenv~=1.0.1
+langchain_postgres
 
 pandas~=2.2.3
 numpy~=1.26.4
