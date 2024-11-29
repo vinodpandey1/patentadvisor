@@ -168,4 +168,6 @@ logs/*.log
 *DS_STORE*
 
 .idea
+dataset/tmp
+dataset/documents/test_dir
 

@@ -47,6 +47,14 @@ class AudioGenerator:
         else:
             logger.info(f"Saving processing!! Audio of {file_name} already exists at location {output_file}...")
 
+    @classmethod
+    def store_metadata_in_documents(cls, supabase, audio_url, pdf_file_name_without_ext):
+        supabase.table(const.DOC_COLLECTION).update({
+            "audio_url": audio_url,
+        }).eq("document_id", pdf_file_name_without_ext).execute()
+        logger.info(
+            f"Stored audio URL for {pdf_file_name_without_ext} in {const.DOC_COLLECTION}")
+
 
 if __name__ == "__main__":
     audio_gen = AudioGenerator()

@@ -8,5 +8,5 @@ MODEL_CONFIGS = {
     "gpt-3.5-turbo": "gpt-3.5-turbo",
     "gpt-4": "gpt-4",
     "Zephyr":"HuggingFaceH4/zephyr-7b-beta",
-    "openai-embedding":"text-embedding-3-large"
+    "openai-embedding":"text-embedding-3-small"
 }

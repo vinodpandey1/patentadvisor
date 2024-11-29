@@ -16,6 +16,7 @@ import logging
 from logging import config
 
 import src.constants as const
+import src.llmtemplate.template
 import src.utils as utils
 
 config.fileConfig(const.CONFIG_DIR + "/logging.conf")
@@ -55,14 +56,15 @@ class PodcastGenerator:
         )
         self.callbacks = [StdOutCallbackHandler(), self.clearml_callback]'''
 
-    def call_llm(self, system_prompt: str, text: str, dialogue_format):
+    def call_llm(self, system_prompt: str, pdf_text: str, dialogue_format):
         """Call the LLM with the given prompt and dialogue format."""
         response = self.client_together.chat.completions.create(
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": text},
+                {"role": "user", "content": pdf_text},
             ],
             model="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+            #model="google/bigbird-pegasus-large-bigpatent",
             response_format={
                 "type": "json_object",
                 "schema": dialogue_format.model_json_schema(),
@@ -148,7 +150,15 @@ class PodcastGenerator:
             if os.path.exists(temp_podcast_pcm):
                 os.remove(temp_podcast_pcm)
         else:
-            logger.info(f"Saving processing!! Podcast of {pdf_file} already exists at location {podcast_file}...")   
+            logger.info(f"Saving processing!! Podcast of {pdf_file} already exists at location {podcast_file}...")
+
+    @staticmethod
+    def store_metadata_in_documents(supabase, podcast_url, pdf_file_name_without_ext):
+        supabase.table(const.DOC_COLLECTION).update({
+            "podcast_url": podcast_url,
+        }).eq("document_id", pdf_file_name_without_ext).execute()
+        logger.info(
+            f"Stored podcast URL for {pdf_file_name_without_ext} in {const.DOC_COLLECTION}")
 
 
 if __name__ == "__main__":
@@ -157,5 +167,5 @@ if __name__ == "__main__":
     _, file_name_without_ext=utils.get_file_name_and_without_extension(pdf_file)
     text = utils.get_pdf_text(pdf_file)
     output_file = const.OUTPUT_DIR + '/podcast/'+file_name_without_ext
-    script = podcast_gen.generate_script(const.PODCAST_PROMPT, text, Script, pdf_file, output_file + '.txt')
+    script = podcast_gen.generate_script(src.llmtemplate.template.PODCAST_PROMPT, text, Script, pdf_file, output_file + '.txt')
     podcast_gen.generate_podcast(script, pdf_file, output_file + '.wav')
