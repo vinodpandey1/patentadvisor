@@ -4,7 +4,7 @@ import openai
 
 from langchain_openai import ChatOpenAI
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
-from llmtemplate.modelconfig import MODEL_CONFIGS, API_KEY_CONFIG
+from src.llmtemplate.modelconfig import MODEL_CONFIGS, API_KEY_CONFIG
 import chromadb.utils.embedding_functions as embedding_functions
 from langchain_openai import OpenAIEmbeddings
 

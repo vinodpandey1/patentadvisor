@@ -1,11 +1,14 @@
 
-from service import configReader, dbclient
-from service.document import storeDocument
-from service.metadataextraction import metadatainfo
-from service.llm.chatmodel import getChatModel
+import src.service.llm.chatmodel as chatmodel
+from src.service import configReader, dbclient
+from src.service.document import storeDocument
+from src.service.metadataextraction import metadatainfo
+from src.service.llm.chatmodel import getChatModel
 from langchain.retrievers.self_query.base import SelfQueryRetriever
 from langchain_community.query_constructors.chroma import ChromaTranslator
 from langchain_community.query_constructors.pgvector import  PGVectorTranslator
+from src.utils import logger
+import json
 from langchain.chains.query_constructor.base import (
     StructuredQueryOutputParser,
     get_query_constructor_prompt,
@@ -22,13 +25,11 @@ from langchain_core.structured_query import (
 
 def searchDocument(query):
 
-    client, collection, vector_store = dbclient.getDBClient("patentdocuments")
-   
-    lst = ['US10282512B2']
+    # lst = ['US10282512B2']
     # filter_dict = {'TechnologyKeywords': {'$like': '%Digital Music%'}}
     
-    llm = getChatModel("gpt-4")
-    llm.temperature = 0
+    # llm = getChatModel("gpt-4")
+    # llm.temperature = 0
     
     # document_content_description = "Patent Detail"
     # self_retriever = SelfQueryRetriever.from_llm(
@@ -39,38 +40,41 @@ def searchDocument(query):
     # structured_query_translator=PGVectorTranslator(),
     # verbose=True
     # )
-    # print("Self Retriever Result")
-    # print(self_retriever.invoke(query))
+
     
-    
-    # retriever = vector_store.as_retriever(
-    # search_type="mmr", search_kwargs={"k": 1, 'filter':filter_dict}
-    # )
-    # results = retriever.invoke(query)
-    
-    # print("fetching results")
-    # for result in results:
-    #     print("\n")
-    #     print(result)
-  
-    print("fetching similarity search results")
-    filter_dict=getQueryStructure(query)
-    results = vector_store.similarity_search(
-        query=query, k=10, filter=filter_dict, where_document=filter_dict, verbose=True
-    )
+    logger.info("fetching similarity search results")
+   
+    database = configReader.getProperty("database")  
+    if database == "postgres":
+        results= getPostgresSearchResults(query)
+    if database == "supabase":
+        results=supabaseSearch(query)
+   
     documentList=[]
     documentIdList=[]
-    # print(results)
+
     for doc in results: 
-        print(f"* [{doc.page_content}]")
-        print(f"* [{doc.id}]")
         
-        patentId = doc.id.split("_")[0]
+        page_content = doc['page_content']
+        # print(f"* [{page_content}]")
+        id = doc['id']
+        logger.info(f"* [{id}]")
+        metadata=doc['metadata']
+        # print(f"* [{metadata}]")
+
+        
+        if isinstance(metadata, str):
+            metadata = json.loads(metadata)
+        if id is not None:
+            patentId = id.split("_")[0]
+        else:
+            patentId = metadata.get('patentnumber')
         if(patentId not in documentIdList):
-            print("PatentID:",patentId)
-            documentList.append(doc.metadata)
-            data = doc.metadata
-            data['filename'] = f"{patentId}.pdf"
+            logger.info(f"Patent Id {patentId}")
+
+            metadata['filename'] = f"{patentId}.pdf"
+            documentList.append(metadata)
+           
             documentIdList.append(patentId)
     return documentList
         
@@ -101,14 +105,14 @@ def getQueryStructure(query):
         "query": query
         }
     )
-    print(result)
+
     if(result.filter is not None):
         structured_query_translator=PGVectorTranslator()
         structureQuery = structured_query_translator.visit_structured_query(result)
-        print(structureQuery)
+        logger.info(structureQuery)
         filter = extract_filter_from_tuple(structureQuery)
         filter = update_operators(filter)
-        print("Filter :",filter)
+        logger.info("Filter :",filter)
         return filter
     return None
     # chain = load_query_constructor_runnable(
@@ -143,3 +147,30 @@ def update_operators(filter_dict):
             updated_filter[key] = updated_value
     
     return updated_filter
+
+
+def supabaseSearch(query):
+    try:
+        client, collection, vector_store = dbclient.getDBClient("patentdocuments")
+        embeddings = chatmodel.getEmbedding("openai-embedding")
+        query_vector = embeddings.embed_query(query )
+        results = client.rpc("match_documents_native", {"query_embedding": query_vector, "match_threshold": 0.5,"match_count": 5}
+            ).execute()
+        return results.data
+    except Exception as e:
+        logger.error(f"Error in Supabase Search: {e}")
+        return None
+
+
+def getPostgresSearchResults(query):
+    try:
+        client, collection, vector_store = dbclient.getDBClient("patentdocuments")
+        filter_dict=getQueryStructure(query)
+        logger.info(filter_dict)
+        results = vector_store.similarity_search(
+            query=query, k=1, filter=filter_dict, where_document=filter_dict, verbose=True
+        )
+        return results
+    except Exception as e:
+        logger.error(f"Error in Postgres Search: {e}")
+        return None

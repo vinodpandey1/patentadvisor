@@ -18,7 +18,9 @@ def readMetaDataAndStore():
     for filename, metadata in metadata_dict.items():
         print(f"\nMetadata for {filename}:= \n")
         print(metadata)
-       
+        
+        # Convert metadata keys to lower case
+    
         filename = os.path.basename(filename)
         filename = filename.split('.')[0]
         print(filename)

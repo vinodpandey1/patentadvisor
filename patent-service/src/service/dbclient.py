@@ -1,13 +1,14 @@
 
 from langchain_chroma import Chroma
 from langchain_postgres import PGVector
-from service.llm import chatmodel
+from src.service.llm import chatmodel
 import chromadb
-
+from src.utils import logger
 import os
-from service import configReader
+from src.service import configReader
 from supabase import create_client
-from langchain.vectorstores import SupabaseVectorStore
+
+from langchain_community.vectorstores import SupabaseVectorStore
 
 def getDBClient(collectionName):
     
@@ -80,9 +81,11 @@ class SupabaseDBClient:
              client=SupabaseDBClient._client,
              table_name=collection_name,
              embedding=embeddings,
+             query_name="match_documents",
+             
         )   
         
-        
+        # print(SupabaseDBClient._vectorStore.embeddings)
         return SupabaseDBClient._client,SupabaseDBClient._collection,SupabaseDBClient._vectorStore
     
 def initialize_supabase():
@@ -97,13 +100,13 @@ def initialize_supabase():
         supabase_key = os.getenv('SUPABASE_KEY')
         
         if not all([supabase_url, supabase_key]):
-            print("Supabase credentials are missing in the .env file.")
+            logger.info("Supabase credentials are missing in the .env file.")
             return None
         
         supabase = create_client(supabase_url, supabase_key)
-        print("Supabase client initialized successfully.")
+        logger.info("Supabase client initialized successfully.")
         return supabase
     
     except Exception as e:
-        print(f"Failed to initialize Supabase client: {e}")
+        logger.info(f"Failed to initialize Supabase client: {e}")
         return None

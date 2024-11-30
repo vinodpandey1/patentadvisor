@@ -33,7 +33,8 @@ metadataprompt = """
     find out all these information from first two pages of patent
     and some information like Domain, Industry, Business Line, Application Area, Sector from title and abstract of patent
     Keep full value of Abstract and Claims
-    Remove space in attribute name and make camel case
+    Remove space in attribute name 
+    Attribute name should be in camel case
     Remove space between attribute name and colon(:) and between colon(:) and attribute value
     Remove trailing and leading spaces from attribute value
     keep date format as dd//mm/yyyy and type as date

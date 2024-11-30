@@ -9,9 +9,9 @@ from langchain_openai import ChatOpenAI
 from langchain_chroma import Chroma
 
 from langchain_core.documents import Document
-from service import configReader, dbclient
+from src.service import configReader, dbclient
 from langchain_postgres import PGVector
-from service.llm import chatmodel
+from src.service.llm import chatmodel
 import pandas as pd
 import chromadb
 
@@ -114,6 +114,7 @@ def store_document(collectionName, documentname, document_chunks,metadata):
         metadata = eval(metadata)
     print(type(metadata))
     print(metadata)
+    metadata = {k.lower(): v for k, v in metadata.items()}
     if(len(document_chunks)==0):    
         print("No content found for document", {documentname})
     else:
@@ -128,7 +129,8 @@ def store_document(collectionName, documentname, document_chunks,metadata):
             document_temp = Document(
             page_content=text,
             metadata=metadata,
-            id=documentname+"_"+str(i)
+            id=documentname+"_"+str(i),
+            patentid=documentname
             )
             documents.append(document_temp)
 
