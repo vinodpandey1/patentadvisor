@@ -73,12 +73,12 @@ class PodcastGenerator:
         )
         return response
 
-    def generate_script(self, system_prompt: str, input_text: str, output_model, pdf_file, dialog_file):
+    def generate_script(self, system_prompt: str, input_text: str, output_model, pdf_file_1, dialog_file):
         """Get the script from the LLM."""
         # Load as python object
         try:
             if len(input_text) > 400000:
-                logger.error(f"The PDF {pdf_file} is too long. Please upload a PDF with fewer than ~131072 tokens.")
+                logger.error(f"The PDF {pdf_file_1} is too long. Please upload a PDF with fewer than ~131072 tokens.")
                 raise "The PDF is too long. Please upload a PDF with fewer than ~131072 tokens."
             response = self.call_llm(system_prompt, input_text, output_model)
             dialogue = output_model.model_validate_json(
@@ -86,10 +86,10 @@ class PodcastGenerator:
             )
             with open(dialog_file, "w") as f:
                 f.write(repr(dialogue))
-            logger.info(f"Generating dialog for {pdf_file} for generating podcast at {dialog_file}")
+            logger.info(f"Generating dialog for {pdf_file_1} for generating podcast at {dialog_file}")
         except ValidationError as e:
             error_message = f"Failed to parse dialogue JSON: {e}"
-            logger.warn(f"Failed to parse dialogue JSON: {e}, retrying with LLM for pdf file {pdf_file}")
+            logger.warn(f"Failed to parse dialogue JSON: {e}, retrying with LLM for pdf file {pdf_file_1}")
             system_prompt_with_error = f"{system_prompt}\n\nPlease return a VALID JSON object. This was the earlier error: {error_message}"
             response = self.call_llm(system_prompt_with_error, input_text, output_model)
             dialogue = output_model.model_validate_json(
@@ -97,7 +97,7 @@ class PodcastGenerator:
             )
         return dialogue
     
-    def generate_podcast(self, script, pdf_file, podcast_file):
+    def generate_podcast(self, script_1, pdf_file_1, podcast_file):
         
         if not utils.is_output_file_exists(podcast_file):
             
@@ -115,13 +115,13 @@ class PodcastGenerator:
                 os.remove(temp_podcast_pcm)
             if os.path.exists(podcast_file):
                 os.remove(podcast_file)
-            logger.info(f"Generating pcm for {pdf_file} at location {temp_podcast_pcm}")
+            logger.info(f"Generating pcm for {pdf_file_1} at location {temp_podcast_pcm}")
             
             ws = self.client_cartesia.tts.websocket()
             f = open(temp_podcast_pcm, "wb")
 
             # Generate and stream audio.
-            for line in script.script:
+            for line in script_1.script:
                 if line.speaker == "Guest":
                     voice_id = guest_id
                 else:
@@ -142,7 +142,7 @@ class PodcastGenerator:
             f.close()
 
             # Convert the raw PCM bytes to a WAV file.
-            logger.info(f"Generating wav file for {pdf_file} at location {podcast_file}")
+            logger.info(f"Generating wav file for {pdf_file_1} at location {podcast_file}")
             ffmpeg.input(temp_podcast_pcm, format="f32le").output(podcast_file).run()
             
             #self.clearml_callback.flush_tracker(langchain_asset=self.client_together, name="podcast_gen")
@@ -150,7 +150,7 @@ class PodcastGenerator:
             if os.path.exists(temp_podcast_pcm):
                 os.remove(temp_podcast_pcm)
         else:
-            logger.info(f"Saving processing!! Podcast of {pdf_file} already exists at location {podcast_file}...")
+            logger.info(f"Saving processing!! Podcast of {pdf_file_1} already exists at location {podcast_file}...")
 
     @staticmethod
     def store_metadata_in_documents(supabase, podcast_url, pdf_file_name_without_ext):
@@ -163,7 +163,7 @@ class PodcastGenerator:
 
 if __name__ == "__main__":
     podcast_gen = PodcastGenerator()
-    pdf_file = const.INPUT_PATENT_DIR_PATH + "/MoA.pdf"
+    pdf_file = const.INPUT_PATENT_DIR_PATH + "/US11431660.pdf"
     _, file_name_without_ext=utils.get_file_name_and_without_extension(pdf_file)
     text = utils.get_pdf_text(pdf_file)
     output_file = const.OUTPUT_DIR + '/podcast/'+file_name_without_ext
