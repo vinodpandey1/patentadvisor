@@ -83,7 +83,7 @@ def searchDocument(query: str, documentID: str):
     documentList_json = json.dumps(documentList, indent=4)
     return Response(content=documentList_json, media_type="application/json")
 
-@app.get("/patent/trigger/{patent_name}")
+@app.post("/patent/trigger/{patent_name}")
 def trigger_pipeline_for_pdf(patent_name: str):
     pipeline = PatentAdvisorPipeLine()
     key = upload_dir_prefix + patent_name + ".pdf"
