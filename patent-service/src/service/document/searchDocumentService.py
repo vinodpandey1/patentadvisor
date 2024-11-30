@@ -8,47 +8,30 @@ from langchain.retrievers.self_query.base import SelfQueryRetriever
 from langchain_community.query_constructors.chroma import ChromaTranslator
 from langchain_community.query_constructors.pgvector import  PGVectorTranslator
 from src.utils import logger
+from src.service.llm import BiasAnalyser
+from src.service.document import SupabaseChatMessageHistory  
 import json
 from langchain.chains.query_constructor.base import (
     StructuredQueryOutputParser,
     get_query_constructor_prompt,
     load_query_constructor_runnable,
 )
-from langchain_core.structured_query import (
-    Comparator,
-    Comparison,
-    FilterDirective,
-    Operation,
-    Operator,
-    StructuredQuery,
-)
+from llmtemplate.template import DOCUMENT_QUERY_TEMPLATE
+from langchain.memory import ConversationBufferMemory
+from langchain.chains import ConversationChain
+from langchain.chat_models import ChatOpenAI
+
 
 def searchDocument(query):
-
-    # lst = ['US10282512B2']
-    # filter_dict = {'TechnologyKeywords': {'$like': '%Digital Music%'}}
-    
-    # llm = getChatModel("gpt-4")
-    # llm.temperature = 0
-    
-    # document_content_description = "Patent Detail"
-    # self_retriever = SelfQueryRetriever.from_llm(
-    # llm = llm,
-    # vectorstore = vector_store,
-    # document_contents = document_content_description,
-    # metadata_field_info = metadatainfo.metadata_field_info,
-    # structured_query_translator=PGVectorTranslator(),
-    # verbose=True
-    # )
 
     
     logger.info("fetching similarity search results")
    
     database = configReader.getProperty("database")  
     if database == "postgres":
-        results= getPostgresSearchResults(query)
+        results= getSearchResultsFromPostgresql(query)
     if database == "supabase":
-        results=supabaseSearch(query)
+        results=getSearchResultFromSupabase(query)
    
     documentList=[]
     documentIdList=[]
@@ -56,12 +39,12 @@ def searchDocument(query):
     for doc in results: 
         
         page_content = doc['page_content']
-        # print(f"* [{page_content}]")
+        
+        logger.debug(f"Fetched Patent Content {page_content}")
         id = doc['id']
-        logger.info(f"* [{id}]")
+        logger.info(f"Fetched Documetn ID {id}")
         metadata=doc['metadata']
-        # print(f"* [{metadata}]")
-
+        logger.debug(f"Fetched Metadata  {metadata}")
         
         if isinstance(metadata, str):
             metadata = json.loads(metadata)
@@ -71,18 +54,24 @@ def searchDocument(query):
             patentId = metadata.get('patentnumber')
         if(patentId not in documentIdList):
             logger.info(f"Patent Id {patentId}")
-
             metadata['filename'] = f"{patentId}.pdf"
             documentList.append(metadata)
-           
             documentIdList.append(patentId)
     return documentList
         
-        
+def queryDocument(query, documentID):
     
-def getDocument(id):
-     client, collection, vector_store = dbclient.getDBClient("patentdocuments")
-     collection.get(id,include=['metadatas'])
+    logger.info(f"Searching from patent document {documentID}")
+    
+    database = configReader.getProperty("database")  
+    if database == "supabase":
+        results=queryDocumentFromSupabase(query)
+
+    llm_response = get_llm_response(results)
+    logger.info(llm_response)
+    logger.info(BiasAnalyser.analyze_sentiment_and_bias(llm_response))
+    return llm_response
+    
 
 def getQueryStructure(query):
     
@@ -94,7 +83,7 @@ def getQueryStructure(query):
     allowed_comparators=['lte', 'exists', 'ne', 'or', 'gt', 'eq', 'and', 'gte', 'nin', 'not', 'like', 'ilike', 'in', '$lt', 'between']
     )
     
-    # print(prompt)
+    logger.debug(f"Promot for query translater Id {prompt}")
     llm = getChatModel("gpt-4")
     llm.temperature = 0
     output_parser = StructuredQueryOutputParser.from_components()
@@ -115,6 +104,7 @@ def getQueryStructure(query):
         logger.info("Filter :",filter)
         return filter
     return None
+   
     # chain = load_query_constructor_runnable(
     # llm = llm, document_contents = document_content_description,
     # attribute_info = metadatainfo.metadata_field_info)
@@ -149,7 +139,7 @@ def update_operators(filter_dict):
     return updated_filter
 
 
-def supabaseSearch(query):
+def getSearchResultFromSupabase(query):
     try:
         client, collection, vector_store = dbclient.getDBClient("patentdocuments")
         embeddings = chatmodel.getEmbedding("openai-embedding")
@@ -162,7 +152,7 @@ def supabaseSearch(query):
         return None
 
 
-def getPostgresSearchResults(query):
+def getSearchResultsFromPostgresql(query):
     try:
         client, collection, vector_store = dbclient.getDBClient("patentdocuments")
         filter_dict=getQueryStructure(query)
@@ -174,3 +164,64 @@ def getPostgresSearchResults(query):
     except Exception as e:
         logger.error(f"Error in Postgres Search: {e}")
         return None
+
+def queryDocumentFromSupabase(query, documentId):
+    try:
+        client, collection, vector_store = dbclient.getDBClient("patentdocumentdetail")
+        embeddings = chatmodel.getEmbedding("openai-embedding")
+        query_vector = embeddings.embed_query(query )
+        results = client.rpc("match_documents_detail", {"query_embedding": query_vector, "match_threshold": 0.5,"match_count": 5, "documentId":documentId}
+            ).execute()
+        return results.data
+    except Exception as e:
+        logger.error(f"Error in Supabase Search: {e}")
+        return None
+
+def selfRetrivel(query):
+  
+    # this is example and not being used
+    client, collection, vector_store = dbclient.getDBClient("patentdocuments")
+    
+    lst = ['US10282512B2']
+    filter_dict = {'TechnologyKeywords': {'$like': '%Digital Music%'}}
+    
+    llm = getChatModel("gpt-4")
+    llm.temperature = 0
+    
+    document_content_description = "Patent Detail"
+    self_retriever = SelfQueryRetriever.from_llm(
+    llm = llm,
+    vectorstore = vector_store,
+    document_contents = document_content_description,
+    metadata_field_info = metadatainfo.metadata_field_info,
+    structured_query_translator=PGVectorTranslator(),
+    verbose=True
+    )
+    
+def get_llm_response(context, query, sessionId="383738uiihfi"):
+
+
+    # prompt = DOCUMENT_QUERY_TEMPLATE.format(context=context, query=query)
+
+    message_history = SupabaseChatMessageHistory(
+    session_id=sessionId,
+    )
+    
+    memory = ConversationBufferMemory(chat_memory=message_history, return_messages=True)
+
+# Initialize a language model (e.g., OpenAI GPT-3.5)
+    llm = getChatModel("gpt-3.5-turbo")
+    llm.temperature = 0.5
+
+# Create a conversation chain
+    conversation = ConversationChain(llm=llm, memory=memory, prompt=DOCUMENT_QUERY_TEMPLATE)
+
+# Simulate a conversation
+    response = conversation.predict(input=query, context=context)
+    print("Bot:", response)
+
+    # Fetch the conversation history
+    for msg in message_history.get_messages():
+        print(f"[{msg.type}] {msg.content}")
+        
+        return response.content

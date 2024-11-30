@@ -52,8 +52,6 @@ class PostgreSQLDBClient:
     @staticmethod
     def get_collection(collection_name):
             
-       
-       
         embeddings = chatmodel.getEmbedding("openai-embedding")
         PostgreSQLDBClient._client = configReader.getProperty("postgreSQLURL")
         
@@ -71,21 +69,22 @@ class SupabaseDBClient:
     _vectorStore = None
     
     @staticmethod
+    def getClient():
+        if SupabaseDBClient._client is None:
+            SupabaseDBClient._client = initialize_supabase()
+        return SupabaseDBClient._client
+    
     def get_collection(collection_name):
             
-       
         embeddings = chatmodel.getEmbedding("openai-embedding")
         SupabaseDBClient._client = initialize_supabase()
         
         SupabaseDBClient._vectorStore = SupabaseVectorStore(
              client=SupabaseDBClient._client,
              table_name=collection_name,
-             embedding=embeddings,
-             query_name="match_documents",
-             
+             embedding=embeddings, 
         )   
         
-        # print(SupabaseDBClient._vectorStore.embeddings)
         return SupabaseDBClient._client,SupabaseDBClient._collection,SupabaseDBClient._vectorStore
     
 def initialize_supabase():
