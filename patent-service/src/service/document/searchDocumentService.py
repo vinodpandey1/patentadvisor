@@ -19,7 +19,6 @@ from langchain.chains.query_constructor.base import (
 from src.llmtemplate.template import DOCUMENT_QUERY_TEMPLATE
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationChain
-from langchain.chat_models import ChatOpenAI
 
 
 def searchDocument(query):

@@ -72,8 +72,8 @@ def search(query: str):
     try:
         documentList = searchDocumentService.searchDocument(query)
         documentList_json = json.dumps(documentList, indent=4)
-
-        return documentList_json
+        print(documentList_json)
+        return Response(content=documentList_json, media_type="application/json")
     except Exception as e:
         print(e)
 
@@ -81,7 +81,7 @@ def search(query: str):
 def searchDocument(query: str, documentID: str):  
     documentList = searchDocumentService.queryDocument(query, documentID)
     documentList_json = json.dumps(documentList, indent=4)
-    return documentList_json
+    return Response(content=documentList_json, media_type="application/json")
 
 @app.get("/patent/trigger/{patent_name}")
 def trigger_pipeline_for_pdf(patent_name: str):
