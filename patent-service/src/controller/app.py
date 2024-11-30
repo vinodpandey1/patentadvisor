@@ -71,16 +71,17 @@ def get_patent_images(patent_name: str):
 def search(query: str):
     try:
         documentList = searchDocumentService.searchDocument(query)
-        # print("final result")
-        print(documentList)
-
         documentList_json = json.dumps(documentList, indent=4)
-        # print("Document List in JSON format:")
-        # print(documentList_json)
+
         return documentList_json
     except Exception as e:
         print(e)
 
+@app.route('/queryDocument')
+def searchDocument(query: str, documentID: str):  
+    documentList = searchDocumentService.queryDocument(query, documentID)
+    documentList_json = json.dumps(documentList, indent=4)
+    return documentList_json
 
 @app.get("/patent/trigger/{patent_name}")
 def trigger_pipeline_for_pdf(patent_name: str):

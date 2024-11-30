@@ -8,15 +8,15 @@ from langchain.retrievers.self_query.base import SelfQueryRetriever
 from langchain_community.query_constructors.chroma import ChromaTranslator
 from langchain_community.query_constructors.pgvector import  PGVectorTranslator
 from src.utils import logger
-from src.service.llm import BiasAnalyser
-from src.service.document import SupabaseChatMessageHistory  
+from src.service.document.bias_analyser import BiasAnalyser
+from src.service.document.chatHistory import SupabaseChatMessageHistory  
 import json
 from langchain.chains.query_constructor.base import (
     StructuredQueryOutputParser,
     get_query_constructor_prompt,
     load_query_constructor_runnable,
 )
-from llmtemplate.template import DOCUMENT_QUERY_TEMPLATE
+from src.llmtemplate.template import DOCUMENT_QUERY_TEMPLATE
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationChain
 from langchain.chat_models import ChatOpenAI
