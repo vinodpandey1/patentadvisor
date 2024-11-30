@@ -117,3 +117,9 @@ IMPORTANT RULE: Each line of dialogue should be no more than 100 characters (e.g
 
 Remember: Always reply in valid JSON format, without code blocks. Begin directly with the JSON output.
 """
+
+IMAGE_SUMMARY_PROMPT = '''Read the image carefully,to  write a short description for each block, and summarize the functionality depicted in the image in less than 50 words. Show output in the following format:
+                    Image name:
+                    Summary:
+                    Guidelines: Try to write in bullet points. Do not use * as markers.
+                '''

@@ -3,6 +3,7 @@ import boto3
 
 import src.llmtemplate.template
 from src.service.audio.gen_audio import AudioGenerator
+from src.service.image.gen_image import ImageGenerator
 from src.service.metadataextraction.document_processor import DocumentProcessor
 from src.service.podcast.podcast_gen import PodcastGenerator, Script
 from src.service.summarization.patent_summarizer import PdfPatentSummarizer
@@ -51,6 +52,7 @@ class PatentAdvisorPipeLine:
         self.patent_summarizer = PdfPatentSummarizer()
         self.audio_gen = AudioGenerator()
         self.podcast_gen = PodcastGenerator()
+        self.image_gen = ImageGenerator()
 
     def upload_file(self, file_path: str):
         logger.info(f"Starting to upload file {file_path}")
@@ -140,6 +142,29 @@ class PatentAdvisorPipeLine:
                 podcast_url = self.bucket_url + "/" + self.podcast_dir_prefix + pdf_file_name_without_ext + ".wav"
                 self.podcast_gen.store_metadata_in_documents(self.supabase, podcast_url, pdf_file_name_without_ext)
 
+            if pipeline_type == "image" or pipeline_type == "all":
+                print(pdf_file_name_without_ext)
+                print(pdf_file_name)
+
+                image_output_file = const.OUTPUT_DIR + '/image/' + pdf_file_name_without_ext
+                self.image_gen.extract_images(pdf_content, image_output_file)
+
+                files = os.listdir(const.OUTPUT_DIR + '/image/')
+                # Filter files that start with the specified prefix
+                filtered_files = [file for file in files if file.startswith(pdf_file_name_without_ext)]
+
+                for file in filtered_files:
+                    file_path = os.path.join(const.OUTPUT_DIR + '/image/', file)
+
+                    # Example: Print the file path (replace with your processing logic)
+                    print(f"Processing file: {file}")
+                    print(f"Full path: {file_path}")
+
+                    self.s3_client.upload_file(file_path, self.bucket_name, self.image_dir_prefix
+                                               + file)
+
+                logger.info(f"Uploaded image file for {self.image_dir_prefix}/{pdf_file_name_without_ext}"
+                            f" in bucket {self.bucket_name}")
 
         except Exception as e:
             logger.error(f"Error processing PDF {pdf_key}: {str(e)}")

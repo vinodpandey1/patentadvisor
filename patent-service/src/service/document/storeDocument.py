@@ -2,7 +2,7 @@ import os
 import openai
 import numpy as np
 from langchain_community.document_loaders import PyPDFLoader
-import gradio as gr
+#import gradio as gr
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_openai import ChatOpenAI
