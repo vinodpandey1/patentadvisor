@@ -76,26 +76,28 @@ class PodcastGenerator:
     def generate_script(self, system_prompt: str, input_text: str, output_model, pdf_file_1, dialog_file):
         """Get the script from the LLM."""
         # Load as python object
-        try:
-            if len(input_text) > 400000:
-                logger.error(f"The PDF {pdf_file_1} is too long. Please upload a PDF with fewer than ~131072 tokens.")
-                raise "The PDF is too long. Please upload a PDF with fewer than ~131072 tokens."
-            response = self.call_llm(system_prompt, input_text, output_model)
-            dialogue = output_model.model_validate_json(
-                response.choices[0].message.content
-            )
-            with open(dialog_file, "w") as f:
-                f.write(repr(dialogue))
-            logger.info(f"Generating dialog for {pdf_file_1} for generating podcast at {dialog_file}")
-        except ValidationError as e:
-            error_message = f"Failed to parse dialogue JSON: {e}"
-            logger.warn(f"Failed to parse dialogue JSON: {e}, retrying with LLM for pdf file {pdf_file_1}")
-            system_prompt_with_error = f"{system_prompt}\n\nPlease return a VALID JSON object. This was the earlier error: {error_message}"
-            response = self.call_llm(system_prompt_with_error, input_text, output_model)
-            dialogue = output_model.model_validate_json(
-                response.choices[0].message.content
-            )
-        return dialogue
+        if not utils.is_output_file_exists(dialog_file):
+
+            try:
+                if len(input_text) > 400000:
+                    logger.error(f"The PDF {pdf_file_1} is too long. Please upload a PDF with fewer than ~131072 tokens.")
+                    raise "The PDF is too long. Please upload a PDF with fewer than ~131072 tokens."
+                response = self.call_llm(system_prompt, input_text, output_model)
+                dialogue = output_model.model_validate_json(
+                    response.choices[0].message.content
+                )
+                with open(dialog_file, "w") as f:
+                    f.write(repr(dialogue))
+                logger.info(f"Generating dialog for {pdf_file_1} for generating podcast at {dialog_file}")
+            except ValidationError as e:
+                error_message = f"Failed to parse dialogue JSON: {e}"
+                logger.warn(f"Failed to parse dialogue JSON: {e}, retrying with LLM for pdf file {pdf_file_1}")
+                system_prompt_with_error = f"{system_prompt}\n\nPlease return a VALID JSON object. This was the earlier error: {error_message}"
+                response = self.call_llm(system_prompt_with_error, input_text, output_model)
+                dialogue = output_model.model_validate_json(
+                    response.choices[0].message.content
+                )
+            return dialogue
     
     def generate_podcast(self, script_1, pdf_file_1, podcast_file):
         
