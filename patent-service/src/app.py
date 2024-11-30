@@ -19,6 +19,14 @@ def search():
     documentList_json = json.dumps(documentList, indent=4)
     return documentList_json
 
+@app.route('/query')
+def search():  
+    query = request.args.get('query')
+    documentList = searchDocumentService.queryDocument(query)
+    documentList_json = json.dumps(documentList, indent=4)
+    return documentList_json
+
+
 
 if __name__ == '__main__':
     app.run(debug=False)
