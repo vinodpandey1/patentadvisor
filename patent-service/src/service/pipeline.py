@@ -1,14 +1,18 @@
 import os
 import boto3
 
+import src.llmtemplate.template
 from src.service.audio.gen_audio import AudioGenerator
+from src.service.metadataextraction.document_processor import DocumentProcessor
 from src.service.podcast.podcast_gen import PodcastGenerator, Script
 from src.service.summarization.patent_summarizer import PdfPatentSummarizer
-from src.service.metadataextraction import extractMetaData
+from src.service.metadataextraction.document_processor import MetaExtractor
+from src.service.supabase_client import initialize_supabase
 from src.utils import logger
 import src.utils as utils
 from src import constants as const
 from dotenv import load_dotenv
+import json
 
 # Load environment variables from .env file
 load_dotenv()
@@ -21,6 +25,7 @@ class PatentAdvisorPipeLine:
         access_key = os.getenv('CLOUDFLARE_R2_ACCESS_KEY')
         secret_key = os.getenv('CLOUDFLARE_R2_SECRET_KEY')
         self.bucket_name = os.getenv('CLOUDFLARE_BUCKET_NAME')
+        self.bucket_url = os.getenv('CLOUDFLARE_BUCKET_URL')
         endpoint_url = os.getenv('CLOUDFLARE_URL')
         self.upload_dir_prefix = os.getenv('CLOUDFLARE_UPLOAD_DIRECTORY_PREFIX')
         self.summary_dir_prefix = os.getenv('CLOUDFLARE_SUMMARY_DIRECTORY_PREFIX')
@@ -28,6 +33,7 @@ class PatentAdvisorPipeLine:
         self.podcast_dir_prefix = os.getenv('CLOUDFLARE_PODCAST_DIRECTORY_PREFIX')
         self.image_dir_prefix = os.getenv('CLOUDFLARE_IMAGE_DIRECTORY_PREFIX')
         self.patent_dir_prefix = os.getenv('CLOUDFLARE_PATENT_DIRECTORY_PREFIX')
+        self.supabase = initialize_supabase()
 
         if not all([access_key, secret_key, self.bucket_name, endpoint_url]):
             logger.error("One or more Cloudflare R2 credentials are missing in the .env file.")
@@ -48,10 +54,18 @@ class PatentAdvisorPipeLine:
 
     def upload_file(self, file_path: str):
         logger.info(f"Starting to upload file {file_path}")
-        file_name, _ = utils.get_file_name_and_without_extension(file_path)
+        file_name, file_name_without_ext = utils.get_file_name_and_without_extension(file_path)
         if os.path.exists(file_path):
             response = self.s3_client.upload_file(file_path, self.bucket_name, self.upload_dir_prefix + file_name)
+            url = self.bucket_url + "/" + self.upload_dir_prefix + file_name
             logger.info(f"response of file upload {file_path} is {response}")
+            self.supabase.table(const.DOC_COLLECTION).insert({
+                "document_id": file_name_without_ext,
+                "file_name": file_name,
+                "user_id": "7ec222c4-3bb2-418b-baf7-bf1b559a2a04",
+                "file_url": url
+            }).execute()
+            logger.info(f"Inserted into documents collection  {file_name_without_ext} and {url}")
         else:
             logger.error(f"File not present at path {file_path}")
 
@@ -78,17 +92,26 @@ class PatentAdvisorPipeLine:
 
             pdf_text_content = utils.get_pdf_text_from_s3(pdf_content, pdf_key)
             pdf_file_name, pdf_file_name_without_ext = utils.get_file_name_and_without_extension(pdf_key)
+            pdf_download_path = const.DATASET_DIR + "/tmp/" + pdf_file_name
+            with open(pdf_download_path, 'wb') as f:
+                f.write(pdf_content)
+                logger.info(f"Downloaded PDF in local : {pdf_download_path}")
 
             if pipeline_type == "meta" or pipeline_type == "all":
-                extractMetaData.extract_metadata_with_llm(pdf_text_content)
+                metaExtractor = MetaExtractor(pdf_download_path, pdf_file_name, pdf_file_name_without_ext)
+                metadata = metaExtractor.process_pdf_file()
+                metaExtractor.store_metadata_in_documents(self.supabase, metadata)
+                DocumentProcessor(pdf_download_path, pdf_file_name, pdf_file_name_without_ext).process_document(
+                    metadata)
 
             summary_output_file = const.OUTPUT_DIR + '/summary/' + pdf_file_name_without_ext + '.txt'
             if pipeline_type == "summary" or pipeline_type == "all" or pipeline_type == "audio":
-                self.patent_summarizer.summarize_text(pdf_text_content, pdf_file_name, summary_output_file)
+                summary = self.patent_summarizer.summarize_text(pdf_text_content, pdf_file_name, summary_output_file)
                 self.s3_client.upload_file(summary_output_file, self.bucket_name, self.summary_dir_prefix
                                            + pdf_file_name_without_ext + '.txt')
                 logger.info(f"Uploaded summary file to {self.summary_dir_prefix}/{pdf_file_name_without_ext}.txt"
                             f" in bucket {self.bucket_name}")
+                self.patent_summarizer.store_metadata_in_documents(self.supabase, summary, pdf_file_name_without_ext)
 
             if pipeline_type == "audio" or pipeline_type == "all":
                 summary_text = utils.get_file_contents(summary_output_file)
@@ -98,11 +121,14 @@ class PatentAdvisorPipeLine:
                                            + pdf_file_name_without_ext + '.mp3')
                 logger.info(f"Uploaded audio file to {self.audio_dir_prefix}/{pdf_file_name_without_ext}.mp3"
                             f" in bucket {self.bucket_name}")
+                audio_url = self.bucket_url + "/" + self.audio_dir_prefix + pdf_file_name_without_ext + ".mp3"
+                AudioGenerator.store_metadata_in_documents(self.supabase, audio_url, pdf_file_name_without_ext)
 
             if pipeline_type == "podcast" or pipeline_type == "all":
                 podcast_output_file = const.OUTPUT_DIR + '/podcast/' + pdf_file_name_without_ext + ".wav"
                 podcast_dialog_file = const.OUTPUT_DIR + '/podcast/' + pdf_file_name_without_ext + ".txt"
-                script = self.podcast_gen.generate_script(const.PODCAST_PROMPT, pdf_text_content, Script,
+                script = self.podcast_gen.generate_script(src.llmtemplate.template.PODCAST_PROMPT, pdf_text_content,
+                                                          Script,
                                                           pdf_file_name, podcast_dialog_file)
                 self.s3_client.upload_file(podcast_dialog_file, self.bucket_name, self.podcast_dir_prefix
                                            + pdf_file_name_without_ext + '.txt')
@@ -111,6 +137,8 @@ class PatentAdvisorPipeLine:
                                            + pdf_file_name_without_ext + '.wav')
                 logger.info(f"Uploaded podcast file to {self.podcast_dir_prefix}/{pdf_file_name_without_ext}.wav"
                             f" in bucket {self.bucket_name}")
+                podcast_url = self.bucket_url + "/" + self.podcast_dir_prefix + pdf_file_name_without_ext + ".wav"
+                self.podcast_gen.store_metadata_in_documents(self.supabase, podcast_url, pdf_file_name_without_ext)
 
 
         except Exception as e:

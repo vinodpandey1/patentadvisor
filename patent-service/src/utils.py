@@ -10,19 +10,21 @@ import src.constants as const
 config.fileConfig(const.CONFIG_DIR + "/logging.conf")
 logger = logging.getLogger("patent")
 
+
 def get_file_name_and_without_extension(file_path):
     file_name = os.path.basename(file_path).split('/')[-1]
     file_tuple = os.path.splitext(file_name)
     return file_name, file_tuple[0]
 
+
 def validate_file(file_path):
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"The File '{file_path}' does not exist.")
     if not file_path.endswith(".pdf"):
-        raise ValueError(f"The file is '{file_path}' not pdf file")    
+        raise ValueError(f"The file is '{file_path}' not pdf file")
 
 
-def get_pdf_text(pdf_file : str):
+def get_pdf_text(pdf_file: str):
     text = ''
 
     # Read the PDF file and extract text
@@ -61,7 +63,7 @@ def get_pdf_text_from_s3(pdf_data, pdf_file_name):
     return text
 
 
-def get_file_contents(text_file : str):
+def get_file_contents(text_file: str):
     text = ""
     try:
         with open(text_file, "r") as f:
@@ -69,8 +71,8 @@ def get_file_contents(text_file : str):
     except Exception as e:
         logger.error(f"Error reading the text file ({text_file}): {str(e)}")
         raise f"Error reading the text file: {str(e)}"
-        raise e
     return text
+
 
 def is_output_file_exists(output_file):
     if os.path.exists(output_file):
