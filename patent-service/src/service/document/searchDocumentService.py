@@ -11,7 +11,6 @@ from src.utils import logger
 from src.service.document.bias_analyser import BiasAnalyser
 from src.service.document.chatHistory import SupabaseChatMessageHistory  
 import json
-import retry
 import uuid
 from langchain.chains.query_constructor.base import (
     StructuredQueryOutputParser,
@@ -215,26 +214,6 @@ def queryDocumentFromSupabase(query, documentId):
                 logger.error(f"Error in Supabase Search: {e}")
                 raise
 
-def selfRetrivel(query):
-  
-    # this is example and not being used
-    client, collection, vector_store = dbclient.getDBClient("patentdocuments")
-    
-    lst = ['US10282512B2']
-    filter_dict = {'TechnologyKeywords': {'$like': '%Digital Music%'}}
-    
-    llm = getChatModel("gpt-4")
-    llm.temperature = 0
-    
-    document_content_description = "Patent Detail"
-    self_retriever = SelfQueryRetriever.from_llm(
-    llm = llm,
-    vectorstore = vector_store,
-    document_contents = document_content_description,
-    metadata_field_info = metadatainfo.metadata_field_info,
-    structured_query_translator=PGVectorTranslator(),
-    verbose=True
-    )
     
 def get_llm_response(contextValue, query, userId, documentId):
  
