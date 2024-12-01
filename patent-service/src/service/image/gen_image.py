@@ -21,7 +21,8 @@ class ImageGenerator:
         load_dotenv()
         # Load the API key from environment variables
 
-    api_key = os.getenv("UNSTRUCTURED_API_KEY")
+    #api_key = os.getenv("UNSTRUCTURED_API_KEY")
+    api_key = "73jxqziAy9KwoXzSCm9sms6rWCuJcr"
     client = UnstructuredClient(api_key_auth=api_key, server_url="https://api.unstructured.io/general/v0/general")
 
 
@@ -101,7 +102,7 @@ class ImageGenerator:
             temperature=0.0,
         )
         summary = response.choices[0].message.content
-        print(summary)
+        #print(summary)
         summary_file_path = f"{output_file}"
         with open(summary_file_path, "w") as summary_file:
             summary_file.write(summary)

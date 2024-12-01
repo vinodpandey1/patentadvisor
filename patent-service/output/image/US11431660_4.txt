@@ -1,0 +1,9 @@
+Image name: Chatbot Architecture
+
+Summary:
+- Depicts a system of multiple chatbot AIs (subminds).
+- Each submind (1, 2, ..., n) contributes to the conversation.
+- A "Blender" Overseer coordinates inputs from subminds.
+- The user interacts with the system through a conversation interface.
+
+Functionality: The image illustrates a chatbot architecture where multiple AIs collaborate under an overseer to facilitate user interactions.
