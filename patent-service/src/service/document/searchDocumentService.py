@@ -11,6 +11,7 @@ from src.utils import logger
 from src.service.document.bias_analyser import BiasAnalyser
 from src.service.document.chatHistory import SupabaseChatMessageHistory  
 import json
+import retry
 import uuid
 from langchain.chains.query_constructor.base import (
     StructuredQueryOutputParser,
