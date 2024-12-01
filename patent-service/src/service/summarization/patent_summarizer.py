@@ -69,10 +69,12 @@ class PdfPatentSummarizer:
                 with open(output_file, "w") as f:
                     f.write(summary)
                 logger.info(f"Generated summary of {pdf_file} at location {output_file}")
-                return summary
             #self.clearml_callback.flush_tracker(langchain_asset=self.model, name="sumarizer")
         else:
             logger.info(f"Saving processing!! Summary of {pdf_file} already exists at location {output_file}...")
+            with open(output_file, "r") as f:
+                summary = f.read()
+        return summary
 
     @staticmethod
     def store_metadata_in_documents(supabase, summary, pdf_file_name_without_ext):

@@ -91,7 +91,7 @@ def searchDocument(query: str, patentID: str):
     except Exception as e:
         logger.error(f"Error in searchDocument: {str(e)}")  
 
-@app.get("/patent/trigger/{patent_name}")
+@app.post("/patent/trigger/{patent_name}")
 def trigger_pipeline_for_pdf(patent_name: str):
     pipeline = PatentAdvisorPipeLine()
     key = upload_dir_prefix + patent_name + ".pdf"
