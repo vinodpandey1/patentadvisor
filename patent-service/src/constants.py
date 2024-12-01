@@ -15,4 +15,10 @@ DOC_COLLECTION="documents"
 META_COLLECTION="patentdocuments"
 DOC_CHUNK_COLLECTION="patentdocumentdetail"
 
+PATENT_SUMMARY_URL = "/patent/summary/"
+PATENT_AUDIO_URL = "/patent/audio/"
+PATENT_PODCAST_URL = "/patent/podcast/"
+PATENT_IMAGE_URL = "/patent/images/"
+PATENT_QA_URL = "/queryDocument/"
+
 ##python3 -m spacy download en_core_web_sm

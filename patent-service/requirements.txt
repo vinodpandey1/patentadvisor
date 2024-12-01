@@ -42,3 +42,4 @@ supabase
 unstructured-client
 langchain-unstructured
 unstructured[all-docs]
+requests

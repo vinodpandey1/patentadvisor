@@ -6,6 +6,10 @@ import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, Response
 
+from langchain.agents import initialize_agent, AgentType
+from langchain.llms import OpenAI
+
+from src.controller.agent import get_summary_of_patent, get_audio_url_of_patent, get_podcast_url_of_patent
 from src.service.document import searchDocumentService
 from src.service.pipeline import PatentAdvisorPipeLine
 from src.utils import logger
@@ -52,14 +56,16 @@ def get_patent_summary(patent_name: str):
 def get_patent_audio(patent_name: str):
     file_url = bucket_url + "/" + audio_dir_prefix + patent_name + ".mp3"
     logger.info(f"Got audio for {patent_name} = {file_url}")
-    return Response(content=file_url, media_type="audio/mpeg")
+    #return Response(content=file_url, media_type="audio/mpeg")
+    return Response(content=file_url, media_type="text/plain")
 
 
 @app.get("/patent/podcast/{patent_name}")
 def get_patent_podcast(patent_name: str):
     file_url = bucket_url + "/" + podcast_dir_prefix + patent_name + ".wav"
     logger.info(f"Got podcast for {patent_name} = {file_url}")
-    return Response(content=file_url, media_type="audio/mpeg")
+    #return Response(content=file_url, media_type="audio/mpeg")
+    return Response(content=file_url, media_type="text/plain")
 
 
 @app.get("/patent/images/{patent_name}")
@@ -100,8 +106,17 @@ def trigger_pipeline_for_pdf(patent_name: str):
 
 
 @app.get("/patent/query/{patent_name}")
-def invoke_questions_answer_using_agent(patent_name: str):
-    pass
+def invoke_questions_answer_using_agent(patent_name: str, query: str):
+    llm = OpenAI(temperature=0)
+    # Create the agent with the tool
+    tools = [get_summary_of_patent, get_audio_url_of_patent, get_podcast_url_of_patent]
+    agent = initialize_agent(
+        tools=tools,
+        llm=llm,
+        agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+        verbose=True
+    )
+    return agent.run(query)
 
 
 if __name__ == "__main__":
