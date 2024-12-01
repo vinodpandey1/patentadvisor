@@ -48,10 +48,16 @@ def searchDocument(query):
         
         if isinstance(metadata, str):
             metadata = json.loads(metadata)
+            
+            assignees = metadata.get('assignees')
+            if isinstance(assignees, str):
+                metadata['assignees'] = [assignees]
+            
         if id is not None:
             patentId = id.split("_")[0]
         else:
             patentId = metadata.get('patentnumber')
+        
         if(patentId not in documentIdList):
             logger.info(f"Patent Id {patentId}")
             metadata['filename'] = f"{patentId}.pdf"

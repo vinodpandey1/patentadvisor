@@ -105,7 +105,7 @@ def search(query: str):
         documentList = searchDocumentService.searchDocument(query)       
         patent_list_json = json.dumps(documentList, indent=4)
         response = {"patentList": json.loads(patent_list_json)}
-       
+        
         # logger.info(f"Search results :{response}")     
       
         # return Response(content=response, media_type="application/json")
