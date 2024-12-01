@@ -86,7 +86,7 @@ def get_patent_images(patent_name: str):
             file_name = os.path.basename(full_file_name)
             # Generate the URL for the object
             file_url = s3_client.generate_presigned_url('get_object',
-                                                        Params={'Bucket': bucket_name, 'Key': file_name},
+                                                        Params={'Bucket': bucket_name, 'Key': full_file_name},
                                                         ExpiresIn=3600)  # URL expires in 1 hour (3600 seconds)
             # Append the file info (file name and URL) as a dictionary to the file_data list
             file_data.append({
@@ -94,7 +94,8 @@ def get_patent_images(patent_name: str):
                 'file_url': file_url
             })
         # Return the list of files as a JSON array
-        return json.dumps(file_data, indent=4)
+        response_json = json.dumps(file_data, indent=4)
+        return json.loads(response_json)
     else:
         logger.error(f"No files found in '{bucket_name}' with prefix 'image'.")
 
