@@ -87,13 +87,18 @@ def search(query: str):
     except Exception as e:
         print(e)
 
-@app.get("/queryDocument/{patentID}")
-def searchDocument(query: str, patentID: str):  
+@app.get("/queryDocument/{userid}/{patentID}")
+def searchDocument(query: str, userid:str, patentID: str):  
     try:
-        logger.info("In Search Document")
-        documentList = searchDocumentService.queryDocument(query, patentID)
-        documentList_json = json.dumps(documentList, indent=4)
-        return Response(content=documentList_json, media_type="application/json")
+        logger.info(f"In Search Document {userid} {patentID}")
+        response_text = searchDocumentService.queryDocument(query, patentID)
+        logger.info(f"Search results :{response_text}")
+        # documentList = json.loads(response_text) 
+        # logger.info(f"Search results :{documentList}") 
+        # patent_list_json = json.dumps(documentList, indent=4)
+        response = {"answer": json.loads(response_text)}
+        return response
+        # return Response(content=documentList_json, media_type="application/json")
     except Exception as e:
         logger.error(f"Error in searchDocument: {str(e)}")  
 
