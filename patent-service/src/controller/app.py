@@ -9,7 +9,7 @@ from fastapi import FastAPI, Response
 from langchain.agents import initialize_agent, AgentType
 from langchain.llms import OpenAI
 
-from src.controller.agent import get_summary_of_patent, get_audio_url_of_patent, get_podcast_url_of_patent
+from src.controller.agent import get_ai_patent_advisor_agent, evaluate_response, get_fallback_agent
 from src.service.document import searchDocumentService
 from src.service.pipeline import PatentAdvisorPipeLine
 from src.utils import logger
@@ -43,35 +43,35 @@ s3_client = boto3.client(
 )
 
 
-@app.get("/patent/summary/{patent_name}")
-def get_patent_summary(patent_name: str):
-    file_key = summary_dir_prefix + patent_name + ".txt"
+@app.get("/patent/summary/{patentID}")
+def get_patent_summary(patentID: str):
+    file_key = summary_dir_prefix + patentID + ".txt"
     file = s3_client.get_object(Bucket=bucket_name, Key=file_key)
     file_content = file['Body'].read()
-    logger.info(f"Got summary text for {patent_name} = {file_content}")
+    logger.info(f"Got summary text for {patentID} = {file_content}")
     return Response(content=file_content, media_type="text/plain")
 
 
-@app.get("/patent/audio/{patent_name}")
-def get_patent_audio(patent_name: str):
-    file_url = bucket_url + "/" + audio_dir_prefix + patent_name + ".mp3"
-    logger.info(f"Got audio for {patent_name} = {file_url}")
+@app.get("/patent/audio/{patentID}")
+def get_patent_audio(patentID: str):
+    file_url = bucket_url + "/" + audio_dir_prefix + patentID + ".mp3"
+    logger.info(f"Got audio for {patentID} = {file_url}")
     #return Response(content=file_url, media_type="audio/mpeg")
     return Response(content=file_url, media_type="text/plain")
 
 
-@app.get("/patent/podcast/{patent_name}")
-def get_patent_podcast(patent_name: str):
-    file_url = bucket_url + "/" + podcast_dir_prefix + patent_name + ".wav"
-    logger.info(f"Got podcast for {patent_name} = {file_url}")
+@app.get("/patent/podcast/{patentID}")
+def get_patent_podcast(patentID: str):
+    file_url = bucket_url + "/" + podcast_dir_prefix + patentID + ".wav"
+    logger.info(f"Got podcast for {patentID} = {file_url}")
     #return Response(content=file_url, media_type="audio/mpeg")
     return Response(content=file_url, media_type="text/plain")
 
 
-@app.get("/patent/images/{patent_name}")
-def get_patent_images(patent_name: str):
+@app.get("/patent/images/{patentID}")
+def get_patent_images(patentID: str):
     # List objects with the specified prefix
-    folder = "image/" + patent_name
+    folder = "image/" + patentID
     response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=folder)
 
     # Initialize the list to store file information
@@ -132,26 +132,36 @@ def searchDocument(query: str, userid:str, documentId: str):
         logger.error(f"Error in searchDocument: {str(e)}") 
         return Response(content="Internal Error", status_code=500) 
 
-@app.post("/patent/trigger/{patent_name}")
-def trigger_pipeline_for_pdf(patent_name: str):
+@app.post("/patent/trigger/{patentID}")
+def trigger_pipeline_for_pdf(patentID: str):
     pipeline = PatentAdvisorPipeLine()
-    key = upload_dir_prefix + patent_name + ".pdf"
+    key = upload_dir_prefix + patentID + ".pdf"
     logger.info(f"Triggering pipeline for pdf {key}")
     pipeline.trigger_pipeline_for_pdf(pdf_key=key, pipeline_type="all")
 
 
-@app.get("/patent/query/{patent_name}")
-def invoke_questions_answer_using_agent(patent_name: str, query: str):
+@app.get("/patent/query/{userId}/{patentID}")
+def invoke_questions_answer_using_agent(userId: str, patentID: str, query: str):
     llm = OpenAI(temperature=0)
+    new_query = query + ". patentID is " + patentID + " and userId is " + userId
+    logger.info(f"Invoked by for {patentID} a query - {new_query}")
     # Create the agent with the tool
-    tools = [get_summary_of_patent, get_audio_url_of_patent, get_podcast_url_of_patent]
-    agent = initialize_agent(
-        tools=tools,
-        llm=llm,
-        agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-        verbose=True
-    )
-    return agent.run(query)
+    try:
+        agent = get_ai_patent_advisor_agent()
+        response = agent.run(new_query)
+
+        if evaluate_response(response):
+            logger.info("response returned from ai patent advisor is sufficient")
+            return response
+        else:
+            logger.info("response returned from ai patent advisor is not sufficient, hence fall backing to internet "
+                        "using fallback agent")
+            agent = get_fallback_agent()
+            response = agent.run(query)
+            return response
+    except Exception as e:
+        print(e)
+        raise e
 
 
 if __name__ == "__main__":

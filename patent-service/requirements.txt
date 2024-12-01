@@ -43,3 +43,4 @@ unstructured-client
 langchain-unstructured
 unstructured[all-docs]
 requests
+google-search-results
