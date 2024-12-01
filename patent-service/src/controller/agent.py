@@ -50,15 +50,3 @@ def get_podcast_url_of_patent(patent_name: str) -> str:
         return res.text  # Process and return the API response
     else:
         return f"Error: {res.status_code} - {res.text}"
-
-
-'''llm = OpenAI(temperature=0)
-# Create the agent with the tool
-tools = [get_summary_of_patent, get_audio_url_of_patent, get_podcast_url_of_patent]
-agent = initialize_agent(
-    tools=tools,
-    llm=llm,
-    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-    verbose=True
-)
-print(agent.run("Get the podcast url of patent US11431660"))'''

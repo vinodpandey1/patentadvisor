@@ -70,7 +70,33 @@ def get_patent_podcast(patent_name: str):
 
 @app.get("/patent/images/{patent_name}")
 def get_patent_images(patent_name: str):
-    pass
+    # List objects with the specified prefix
+    folder = "image/" + patent_name
+    response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=folder)
+
+    # Initialize the list to store file information
+    file_data = []
+
+    # Check if the response contains 'Contents'
+    if 'Contents' in response:
+
+        for obj in response['Contents']:
+            full_file_name = obj['Key']
+            # Extract just the file name (remove the prefix/folder path)
+            file_name = os.path.basename(full_file_name)
+            # Generate the URL for the object
+            file_url = s3_client.generate_presigned_url('get_object',
+                                                        Params={'Bucket': bucket_name, 'Key': file_name},
+                                                        ExpiresIn=3600)  # URL expires in 1 hour (3600 seconds)
+            # Append the file info (file name and URL) as a dictionary to the file_data list
+            file_data.append({
+                'file_name': file_name,
+                'file_url': file_url
+            })
+        # Return the list of files as a JSON array
+        return json.dumps(file_data, indent=4)
+    else:
+        logger.error(f"No files found in '{bucket_name}' with prefix 'image'.")
 
 
 @app.get('/searchPatent')
