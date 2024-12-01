@@ -6,8 +6,9 @@ from langchain_postgres import PostgresChatMessageHistory
 from src.utils import logger
 
 class SupabaseChatMessageHistory(BaseChatMessageHistory):
-    def __init__(self, session_id: str):
+    def __init__(self, session_id: str, documentId:str):
         self.session_id = session_id
+        self.documentId = documentId
         self.supabase = dbclient.SupabaseDBClient.getClient()
 
     def add_message(self, message: ChatMessage) -> None:
@@ -18,6 +19,7 @@ class SupabaseChatMessageHistory(BaseChatMessageHistory):
         
         self.supabase.table("conversation_history").insert({
             "session_id": self.session_id,
+            "document_id": self.documentId,
             "role": message.type,
             "message": message.content,
             "timestamp": current_timestamp,
@@ -30,6 +32,7 @@ class SupabaseChatMessageHistory(BaseChatMessageHistory):
             response = self.supabase.table("conversation_history") \
                 .select("*") \
                 .filter("session_id", "eq", self.session_id) \
+                .filter("document_id", "eq", self.documentId) \
                 .order("timestamp", desc=True) \
                 .limit(10) \
                 .execute() 

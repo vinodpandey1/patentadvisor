@@ -11,6 +11,7 @@ from src.utils import logger
 from src.service.document.bias_analyser import BiasAnalyser
 from src.service.document.chatHistory import SupabaseChatMessageHistory  
 import json
+import uuid
 from langchain.chains.query_constructor.base import (
     StructuredQueryOutputParser,
     get_query_constructor_prompt,
@@ -74,9 +75,14 @@ def queryDocument(query, userid, documentID):
     
     database = configReader.getProperty("database")  
     if database == "supabase":
-        results=queryDocumentFromSupabase(query,documentID)
-        logger.info(results)
-    llm_response,history_dict = get_llm_response(results, query, userid)
+        try:
+            results=queryDocumentFromSupabase(query,documentID)
+            logger.info("Successfully fetched data from database")
+        except Exception as e:
+            logger.error(f"Failed after retries: {e}")
+            raise
+
+    llm_response,history_dict = get_llm_response(results, query, userid, documentID)
     # logger.info(llm_response)
     bias_analyzer = BiasAnalyser.analyze_sentiment_and_bias(llm_response)
     return llm_response , history_dict, bias_analyzer
@@ -174,17 +180,20 @@ def getSearchResultsFromPostgresql(query):
         logger.error(f"Error in Postgres Search: {e}")
         return None
 
+@retry(tries=3, delay=2, backoff=2, exceptions=(Exception,))
 def queryDocumentFromSupabase(query, documentId):
     try:
         client, collection, vector_store = dbclient.getDBClient("patentdocumentdetail")
         embeddings = chatmodel.getEmbedding("openai-embedding")
         query_vector = embeddings.embed_query(query )
-        documentId=documentId+'%'
-        logger.info(documentId)
-        results = client.rpc("match_documents_detail", {"query_embedding": query_vector, "match_threshold": 0.1,"match_count": 5, "documentid":documentId}
+        document_uuid = str(uuid.UUID(documentId))
+        
+        results = client.rpc("match_documents_detail", {"query_embedding": query_vector, "match_threshold": 0.1,"match_count": 5, "documentid":document_uuid}
             ).execute()
+        
+        
         return results.data
-    except Exception as e:  
+    except Exception as e:
         logger.error(f"Error in Supabase Search: {e}")
         return None
 
@@ -209,11 +218,12 @@ def selfRetrivel(query):
     verbose=True
     )
     
-def get_llm_response(contextValue, query, sessionId):
+def get_llm_response(contextValue, query, userId, documentId):
  
 
     message_history = SupabaseChatMessageHistory(
-        session_id=sessionId,
+        session_id=userId,
+        documentId=documentId
     )
    
     chat_history = message_history.get_messages()

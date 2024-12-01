@@ -103,30 +103,34 @@ def get_patent_images(patent_name: str):
 @app.get('/searchPatent')
 def search(query: str):
     try:
-        documentList = searchDocumentService.searchDocument(query)       
+        
+        documentList = searchDocumentService.searchDocument(query)     
+        
+        if not documentList or len(documentList) == 0:
+            return Response(content="No data found", status_code=404)
+          
         patent_list_json = json.dumps(documentList, indent=4)
         response = {"patentList": json.loads(patent_list_json)}
         
-        # logger.info(f"Search results :{response}")     
-      
-        # return Response(content=response, media_type="application/json")
         return response
     except Exception as e:
-        print(e)
+        logger.error(f"Error in searchDocument: {str(e)}") 
+        return Response(content="Internal Error", status_code=500) 
 
-@app.get("/queryDocument/{userid}/{patentID}")
-def searchDocument(query: str, userid:str, patentID: str):  
+@app.get("/queryDocument/{userid}/{documentId}")
+def searchDocument(query: str, userid:str, documentId: str):  
     try:
-        logger.info(f"Calling Search Document API {userid} {patentID}")
-        llm_response , history_dict, bias_analyzer = searchDocumentService.queryDocument(query, userid,patentID)
-        response = {"answer": llm_response, "history": history_dict, "bias": bias_analyzer}        
+        logger.info(f"Calling Search Document API {userid} {documentId}")
+        llm_response , history_dict, bias_analyzer = searchDocumentService.queryDocument(query, userid,documentId)
+        response = {"answer": llm_response, "history": history_dict, "bias": bias_analyzer, "documentId":documentId}        
         response_json = json.dumps(response, indent=4)
         response = json.loads(response_json)
         # logger.info(f"Search results JSON Response :{response}")
         return response
         
     except Exception as e:
-        logger.error(f"Error in searchDocument: {str(e)}")  
+        logger.error(f"Error in searchDocument: {str(e)}") 
+        return Response(content="Internal Error", status_code=500) 
 
 @app.post("/patent/trigger/{patent_name}")
 def trigger_pipeline_for_pdf(patent_name: str):
