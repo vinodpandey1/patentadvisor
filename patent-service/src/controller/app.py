@@ -84,15 +84,14 @@ def search(query: str):
 @app.get("/queryDocument/{userid}/{patentID}")
 def searchDocument(query: str, userid:str, patentID: str):  
     try:
-        logger.info(f"In Search Document {userid} {patentID}")
-        response_text = searchDocumentService.queryDocument(query, patentID)
-        logger.info(f"Search results :{response_text}")
-        # documentList = json.loads(response_text) 
-        # logger.info(f"Search results :{documentList}") 
-        # patent_list_json = json.dumps(documentList, indent=4)
-        response = {"answer": json.loads(response_text)}
+        logger.info(f"Calling Search Document API {userid} {patentID}")
+        llm_response , history_dict, bias_analyzer = searchDocumentService.queryDocument(query, userid,patentID)
+        response = {"answer": llm_response, "history": history_dict, "bias": bias_analyzer}        
+        response_json = json.dumps(response, indent=4)
+        response = json.loads(response_json)
+        # logger.info(f"Search results JSON Response :{response}")
         return response
-        # return Response(content=documentList_json, media_type="application/json")
+        
     except Exception as e:
         logger.error(f"Error in searchDocument: {str(e)}")  
 

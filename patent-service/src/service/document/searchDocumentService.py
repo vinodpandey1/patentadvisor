@@ -19,6 +19,7 @@ from langchain.chains.query_constructor.base import (
 from src.llmtemplate.template import DOCUMENT_QUERY_TEMPLATE
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationChain
+from langchain_core.messages import SystemMessage, AIMessage, HumanMessage
 
 
 def searchDocument(query):
@@ -58,7 +59,7 @@ def searchDocument(query):
             documentIdList.append(patentId)
     return documentList
         
-def queryDocument(query, documentID):
+def queryDocument(query, userid, documentID):
     
     logger.info(f"Searching from patent document {documentID}")
     
@@ -66,10 +67,10 @@ def queryDocument(query, documentID):
     if database == "supabase":
         results=queryDocumentFromSupabase(query,documentID)
         logger.info(results)
-    llm_response = get_llm_response(results, query)
-    logger.info(llm_response)
-    logger.info(BiasAnalyser.analyze_sentiment_and_bias(llm_response))
-    return llm_response
+    llm_response,history_dict = get_llm_response(results, query, userid)
+    # logger.info(llm_response)
+    bias_analyzer = BiasAnalyser.analyze_sentiment_and_bias(llm_response)
+    return llm_response , history_dict, bias_analyzer
     
 
 def getQueryStructure(query):
@@ -199,19 +200,24 @@ def selfRetrivel(query):
     verbose=True
     )
     
-def get_llm_response(contextValue, query, sessionId="383738uiihfi"):
+def get_llm_response(contextValue, query, sessionId):
  
-    logger.info(f"Context {contextValue}")
-    logger.info(f"Query {query}")
+
     message_history = SupabaseChatMessageHistory(
-    session_id=sessionId,
+        session_id=sessionId,
     )
-    
+   
     chat_history = message_history.get_messages()
-    if len(chat_history) > 0:
-        history = chat_history[-1].content
+    # logger.info(f"chat history {chat_history}")
+    if len(chat_history) > 1:
+        history = "\n".join([f"{msg.role}: {msg.content}" for msg in chat_history[0:4]])
+        history_dict = [{"role": msg.role, "content": msg.content} for msg in chat_history[0:5]]
     else:
-        history = "first message"
+        history = "first message" 
+        history_dict=[{}]
+    
+    # logger.info(f"History {history_dict}") 
+
     prompt  = DOCUMENT_QUERY_TEMPLATE.format(context=contextValue,input=query, history=history)
     
     logger.info(prompt)
@@ -219,25 +225,10 @@ def get_llm_response(contextValue, query, sessionId="383738uiihfi"):
     llm.temperature = 0
     response = llm.invoke(prompt)
     logger.info(response.content)
-    return response.content
-#     memory = ConversationBufferMemory(chat_memory=message_history, return_messages=True)
-
-# # Initialize a language model (e.g., OpenAI GPT-3.5)
-#     llm = getChatModel("gpt-3.5-turbo")
-#     llm.temperature = 0.5
-
-# # Create a conversation chain
-#     conversation = ConversationChain(llm=llm, memory=memory, prompt=DOCUMENT_QUERY_TEMPLATE)
-
-# # Simulate a conversation
-#     # response = conversation.predict(input=query, context=contextValue)
-#     logger.info(memory.load_memory_variables({})['history'])
-#     response = conversation.predict(input=query)
     
-#     print("Bot:", response)
+    message_history.add_messages([
+        AIMessage(content=response.content),
+        HumanMessage(content=query),
+    ])
+    return response.content, history_dict
 
-#     # Fetch the conversation history
-#     for msg in message_history.get_messages():
-#         print(f"[{msg.type}] {msg.content}")
-        
-#         return response.content

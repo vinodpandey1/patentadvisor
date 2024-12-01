@@ -2,6 +2,7 @@ from langchain.schema import BaseChatMessageHistory, ChatMessage
 from supabase import create_client
 import datetime
 import src.service.dbclient as dbclient 
+from langchain_postgres import PostgresChatMessageHistory
 from src.utils import logger
 
 class SupabaseChatMessageHistory(BaseChatMessageHistory):
@@ -10,12 +11,16 @@ class SupabaseChatMessageHistory(BaseChatMessageHistory):
         self.supabase = dbclient.SupabaseDBClient.getClient()
 
     def add_message(self, message: ChatMessage) -> None:
-        """Add a message to the conversation history."""
+        logger.info("Add a message to the conversation history.")
+        
+        current_timestamp = datetime.datetime.utcnow().isoformat()
+        logger.info(current_timestamp)
+        
         self.supabase.table("conversation_history").insert({
             "session_id": self.session_id,
             "role": message.type,
             "message": message.content,
-            "timestamp": datetime.datetime.utcnow(),
+            "timestamp": current_timestamp,
         }).execute()
 
     def get_messages(self) -> list[ChatMessage]:
@@ -25,9 +30,10 @@ class SupabaseChatMessageHistory(BaseChatMessageHistory):
             response = self.supabase.table("conversation_history") \
                 .select("*") \
                 .filter("session_id", "eq", self.session_id) \
-                .order("timestamp") \
-                .execute()  
-            logger.info(f"Response: {response}")
+                .order("timestamp", desc=True) \
+                .limit(10) \
+                .execute() 
+            # logger.info(f"Response: {response}")
         except Exception as e:
             raise ValueError(f"Error fetching messages: {e}")
 
@@ -35,12 +41,10 @@ class SupabaseChatMessageHistory(BaseChatMessageHistory):
         # if response.error:
         #     raise ValueError(f"Error fetching messages: {response.error.message}")
         
-        logger.info(type(response))
         if not response.data:
             return []
         else:
-            logger.info("in else")
-            return [ChatMessage(content=row["message"], type=row["role"]) for row in response.data]
+            return [ChatMessage(content=row["message"], role=row["role"], tye="chat") for row in response.data]
 
     def clear(self) -> None:
         """Clear all messages for the session."""

@@ -7,6 +7,7 @@ from src.utils import logger
 import os
 from src.service import configReader
 from supabase import create_client
+import psycopg
 
 from langchain_community.vectorstores import SupabaseVectorStore
 

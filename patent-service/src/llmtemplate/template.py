@@ -60,7 +60,7 @@ medatainfo = """
 """
 documentQuery = """You are a helpful assistant. Maintain a friendly tone and provide concise answers using context. Use the following pieces of context to answer the question at the end.
 If you don't know the answer, just say that you don't know, don't try to make up an answer.
-Always say "thanks for asking!" at the end of the answer.
+
 {context}
 "Conversation history:\n{history}\n\n"
 "User: {input}\n"
