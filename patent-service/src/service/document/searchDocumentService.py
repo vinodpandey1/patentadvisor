@@ -64,9 +64,9 @@ def queryDocument(query, documentID):
     
     database = configReader.getProperty("database")  
     if database == "supabase":
-        results=queryDocumentFromSupabase(query)
-
-    llm_response = get_llm_response(results)
+        results=queryDocumentFromSupabase(query,documentID)
+        logger.info(results)
+    llm_response = get_llm_response(results, query)
     logger.info(llm_response)
     logger.info(BiasAnalyser.analyze_sentiment_and_bias(llm_response))
     return llm_response
@@ -169,10 +169,12 @@ def queryDocumentFromSupabase(query, documentId):
         client, collection, vector_store = dbclient.getDBClient("patentdocumentdetail")
         embeddings = chatmodel.getEmbedding("openai-embedding")
         query_vector = embeddings.embed_query(query )
-        results = client.rpc("match_documents_detail", {"query_embedding": query_vector, "match_threshold": 0.5,"match_count": 5, "documentId":documentId}
+        documentId=documentId+'%'
+        logger.info(documentId)
+        results = client.rpc("match_documents_detail", {"query_embedding": query_vector, "match_threshold": 0.1,"match_count": 5, "documentid":documentId}
             ).execute()
         return results.data
-    except Exception as e:
+    except Exception as e:  
         logger.error(f"Error in Supabase Search: {e}")
         return None
 
@@ -197,30 +199,45 @@ def selfRetrivel(query):
     verbose=True
     )
     
-def get_llm_response(context, query, sessionId="383738uiihfi"):
-
-
-    # prompt = DOCUMENT_QUERY_TEMPLATE.format(context=context, query=query)
-
+def get_llm_response(contextValue, query, sessionId="383738uiihfi"):
+ 
+    logger.info(f"Context {contextValue}")
+    logger.info(f"Query {query}")
     message_history = SupabaseChatMessageHistory(
     session_id=sessionId,
     )
     
-    memory = ConversationBufferMemory(chat_memory=message_history, return_messages=True)
-
-# Initialize a language model (e.g., OpenAI GPT-3.5)
+    chat_history = message_history.get_messages()
+    if len(chat_history) > 0:
+        history = chat_history[-1].content
+    else:
+        history = "first message"
+    prompt  = DOCUMENT_QUERY_TEMPLATE.format(context=contextValue,input=query, history=history)
+    
+    logger.info(prompt)
     llm = getChatModel("gpt-3.5-turbo")
-    llm.temperature = 0.5
+    llm.temperature = 0
+    response = llm.invoke(prompt)
+    logger.info(response.content)
+    return response.content
+#     memory = ConversationBufferMemory(chat_memory=message_history, return_messages=True)
 
-# Create a conversation chain
-    conversation = ConversationChain(llm=llm, memory=memory, prompt=DOCUMENT_QUERY_TEMPLATE)
+# # Initialize a language model (e.g., OpenAI GPT-3.5)
+#     llm = getChatModel("gpt-3.5-turbo")
+#     llm.temperature = 0.5
 
-# Simulate a conversation
-    response = conversation.predict(input=query, context=context)
-    print("Bot:", response)
+# # Create a conversation chain
+#     conversation = ConversationChain(llm=llm, memory=memory, prompt=DOCUMENT_QUERY_TEMPLATE)
 
-    # Fetch the conversation history
-    for msg in message_history.get_messages():
-        print(f"[{msg.type}] {msg.content}")
+# # Simulate a conversation
+#     # response = conversation.predict(input=query, context=contextValue)
+#     logger.info(memory.load_memory_variables({})['history'])
+#     response = conversation.predict(input=query)
+    
+#     print("Bot:", response)
+
+#     # Fetch the conversation history
+#     for msg in message_history.get_messages():
+#         print(f"[{msg.type}] {msg.content}")
         
-        return response.content
+#         return response.content

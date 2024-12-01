@@ -93,10 +93,11 @@ as $$
   limit match_count;
 $$;
 
-create or replace function match_documents_native (
+create or replace function match_documents_detail (
   query_embedding vector(1536),
   match_threshold float,
-  match_count int
+  match_count int, 
+  documentID text
 )
 returns table (
   id text,
@@ -107,12 +108,14 @@ returns table (
 language sql stable
 as $$
   select
-    patentdocuments.id,
-    patentdocuments.content,
-    patentdocuments.metadata,
-    1 - (patentdocuments.embedding <=> query_embedding) as similarity
-  from patentdocuments
-  where 1 - (patentdocuments.embedding <=> query_embedding) > match_threshold
-  order by (patentdocuments.embedding <=> query_embedding) asc
+    patentdocumentdetail.id,
+    patentdocumentdetail.content,
+    patentdocumentdetail.metadata,
+    1 - (patentdocumentdetail.embedding <=> query_embedding) as similarity
+  from patentdocumentdetail
+  where 1 - (patentdocumentdetail.embedding <=> query_embedding) > match_threshold
+  AND 
+  patentdocumentdetail.id like documentID
+  order by (patentdocumentdetail.embedding <=> query_embedding) asc
   limit match_count;
 $$;

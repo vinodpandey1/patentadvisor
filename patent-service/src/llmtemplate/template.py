@@ -65,7 +65,7 @@ Always say "thanks for asking!" at the end of the answer.
 "Conversation history:\n{history}\n\n"
 "User: {input}\n"
 "Assistant:"""
-DOCUMENT_QUERY_TEMPLATE =    PromptTemplate(input_variables=["context", "query"], template=documentQuery)
+DOCUMENT_QUERY_TEMPLATE =    PromptTemplate(input_variables=["context","history", "input"], template=documentQuery)
 
 
 METADATA_PROMPT_TEMPLATE = PromptTemplate(input_variables=["content"], template=metadataprompt)

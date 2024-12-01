@@ -2,6 +2,7 @@ from langchain.schema import BaseChatMessageHistory, ChatMessage
 from supabase import create_client
 import datetime
 import src.service.dbclient as dbclient 
+from src.utils import logger
 
 class SupabaseChatMessageHistory(BaseChatMessageHistory):
     def __init__(self, session_id: str):
@@ -19,14 +20,31 @@ class SupabaseChatMessageHistory(BaseChatMessageHistory):
 
     def get_messages(self) -> list[ChatMessage]:
         """Retrieve all messages for the session."""
-        response = self.supabase.table("conversation_history") \
-            .select("*") \
-            .filter("session_id", "eq", self.session_id) \
-            .order("timestamp", ascending=True) \
-            .execute()
-
-        if response.get("error"):
-            raise ValueError(f"Error fetching messages: {response['error']}")
+        logger.info(f"Fetching messages for session {self.session_id}")
+        try:
+            response = self.supabase.table("conversation_history") \
+                .select("*") \
+                .filter("session_id", "eq", self.session_id) \
+                .order("timestamp") \
+                .execute()  
+            logger.info(f"Response: {response}")
+        except Exception as e:
+            raise ValueError(f"Error fetching messages: {e}")
 
         # Convert rows into ChatMessage objects
-        return [ChatMessage(content=row["message"], type=row["role"]) for row in response["data"]]
+        # if response.error:
+        #     raise ValueError(f"Error fetching messages: {response.error.message}")
+        
+        logger.info(type(response))
+        if not response.data:
+            return []
+        else:
+            logger.info("in else")
+            return [ChatMessage(content=row["message"], type=row["role"]) for row in response.data]
+
+    def clear(self) -> None:
+        """Clear all messages for the session."""
+        self.supabase.table("conversation_history") \
+            .delete() \
+            .filter("session_id", "eq", self.session_id) \
+            .execute()
