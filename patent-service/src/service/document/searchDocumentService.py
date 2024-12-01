@@ -181,22 +181,39 @@ def getSearchResultsFromPostgresql(query):
         logger.error(f"Error in Postgres Search: {e}")
         return None
 
-@retry(tries=3, delay=2, backoff=2, exceptions=(Exception,))
 def queryDocumentFromSupabase(query, documentId):
-    try:
-        client, collection, vector_store = dbclient.getDBClient("patentdocumentdetail")
-        embeddings = chatmodel.getEmbedding("openai-embedding")
-        query_vector = embeddings.embed_query(query )
-        document_uuid = str(uuid.UUID(documentId))
-        
-        results = client.rpc("match_documents_detail", {"query_embedding": query_vector, "match_threshold": 0.1,"match_count": 5, "documentid":document_uuid}
-            ).execute()
-        
-        
-        return results.data
-    except Exception as e:
-        logger.error(f"Error in Supabase Search: {e}")
-        return None
+    max_retries = 3
+    delay = 2
+    for attempt in range(max_retries):
+        try:
+            client, collection, vector_store = dbclient.getDBClient("patentdocumentdetail")
+            embeddings = chatmodel.getEmbedding("openai-embedding")
+            query_vector = embeddings.embed_query(query)
+            
+            # Ensure the documentId is formatted as a UUID
+            document_uuid = str(uuid.UUID(documentId))
+            
+            results = client.rpc("match_documents_detail", {
+                "query_embedding": query_vector,
+                "match_threshold": 0.1,
+                "match_count": 5,
+                "documentid": document_uuid
+            }).execute()
+            
+            return results.data
+        except Exception as e:
+            if hasattr(e, 'errno') and e.errno == errno.ECONNRESET:
+                logger.error(f"Connection reset by peer: {e}")
+                if attempt < max_retries - 1:
+                    logger.info(f"Retrying in {delay} seconds...")
+                    time.sleep(delay)
+                    delay *= 2  # Exponential backoff
+                else:
+                    logger.error("Max retries reached. Failing.")
+                    raise
+            else:
+                logger.error(f"Error in Supabase Search: {e}")
+                raise
 
 def selfRetrivel(query):
   
@@ -240,11 +257,11 @@ def get_llm_response(contextValue, query, userId, documentId):
 
     prompt  = DOCUMENT_QUERY_TEMPLATE.format(context=contextValue,input=query, history=history)
     
-    logger.info(prompt)
+    # logger.info(prompt)
     llm = getChatModel("gpt-3.5-turbo")
     llm.temperature = 0
     response = llm.invoke(prompt)
-    logger.info(response.content)
+    # logger.info(response.content)
     
     message_history.add_messages([
         AIMessage(content=response.content),
