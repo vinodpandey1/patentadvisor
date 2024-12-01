@@ -1,0 +1,12 @@
+Image name: CCAI Components and Roles
+
+Summary:
+- Depicts the structure of Collaborated Artificial Intelligence (CCAI).
+- Shows roles such as Proctor, Sensor, and others within the CCAI framework.
+- Illustrates collaboration between AI and humans, including hybrid roles.
+- Highlights examples of collaboration like Sensor and Chatbot.
+
+Guidelines:
+- Focuses on the interaction between AI and human roles.
+- Emphasizes the collaborative nature of intelligence.
+- Provides a visual representation of member roles and components.

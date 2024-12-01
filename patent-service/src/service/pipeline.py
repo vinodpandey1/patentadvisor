@@ -157,11 +157,11 @@ class PatentAdvisorPipeLine:
                     file_path = os.path.join(const.OUTPUT_DIR + '/image/', file)
 
                     # Example: Print the file path (replace with your processing logic)
-                    print(f"Processing file: {file}")
-                    print(f"Full path: {file_path}")
+                    #print(f"Processing file: {file}")
+                    #print(f"Full path: {file_path}")
 
-                    self.s3_client.upload_file(file_path, self.bucket_name, self.image_dir_prefix
-                                               + file)
+                    self.s3_client.upload_file(file_path, self.bucket_name, self.image_dir_prefix +
+                                               pdf_file_name_without_ext + "/" + file)
 
                 logger.info(f"Uploaded image file for {self.image_dir_prefix}/{pdf_file_name_without_ext}"
                             f" in bucket {self.bucket_name}")

@@ -1,0 +1,9 @@
+Image name: Collaborative Communication Framework Terminology Relationships Diagram
+
+Summary:
+- Depicts components of collaborative communication.
+- Shows roles such as Facilitators, Proctor, Sensor, and Others.
+- Illustrates relationships between humans, collaborative intelligence, and various roles.
+- Highlights collaboration types and examples like Sensor and Chatbot.
+
+Functionality: The diagram outlines the structure and roles within a collaborative communication framework, emphasizing interactions and contributions of various participants and technologies.
