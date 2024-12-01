@@ -94,7 +94,8 @@ def get_patent_images(patent_name: str):
                 'file_url': file_url
             })
         # Return the list of files as a JSON array
-        return json.dumps(file_data, indent=4)
+        response_json = json.dumps(file_data, indent=4)
+        return json.loads(response_json)
     else:
         logger.error(f"No files found in '{bucket_name}' with prefix 'image'.")
 
