@@ -70,18 +70,26 @@ def get_patent_images(patent_name: str):
 @app.get('/searchPatent')
 def search(query: str):
     try:
-        documentList = searchDocumentService.searchDocument(query)
-        documentList_json = json.dumps(documentList, indent=4)
-        print(documentList_json)
-        return Response(content=documentList_json, media_type="application/json")
+        documentList = searchDocumentService.searchDocument(query)       
+        patent_list_json = json.dumps(documentList, indent=4)
+        response = {"patentList": json.loads(patent_list_json)}
+       
+        # logger.info(f"Search results :{response}")     
+      
+        # return Response(content=response, media_type="application/json")
+        return response
     except Exception as e:
         print(e)
 
-@app.route('/queryDocument')
-def searchDocument(query: str, documentID: str):  
-    documentList = searchDocumentService.queryDocument(query, documentID)
-    documentList_json = json.dumps(documentList, indent=4)
-    return Response(content=documentList_json, media_type="application/json")
+@app.get("/queryDocument/{patentID}")
+def searchDocument(query: str, patentID: str):  
+    try:
+        logger.info("In Search Document")
+        documentList = searchDocumentService.queryDocument(query, patentID)
+        documentList_json = json.dumps(documentList, indent=4)
+        return Response(content=documentList_json, media_type="application/json")
+    except Exception as e:
+        logger.error(f"Error in searchDocument: {str(e)}")  
 
 @app.get("/patent/trigger/{patent_name}")
 def trigger_pipeline_for_pdf(patent_name: str):
