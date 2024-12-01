@@ -42,13 +42,16 @@ def searchDocument(query):
         
         logger.debug(f"Fetched Patent Content {page_content}")
         id = doc['id']
-        logger.info(f"Fetched Documetn ID {id}")
+        logger.info(f"Fetched patent ID {id}")
+        document_id = doc['document_id']
+        logger.info(f"Fetched patent ID {document_id}")
         metadata=doc['metadata']
         logger.debug(f"Fetched Metadata  {metadata}")
         
         if isinstance(metadata, str):
             metadata = json.loads(metadata)
             
+            metadata['documentId'] = document_id
             assignees = metadata.get('assignees')
             if isinstance(assignees, str):
                 metadata['assignees'] = [assignees]

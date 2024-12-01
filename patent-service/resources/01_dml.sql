@@ -23,6 +23,9 @@ CREATE TABLE conversation_history (
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE INDEX IDX_SESSION_ID ON conversation_history(session_id);
+
+
 --   create or replace function match_documents (
 --   query_embedding vector(384),
 --   match_threshold float,
@@ -76,6 +79,7 @@ create or replace function match_documents_native (
 )
 returns table (
   id text,
+  document_id text,
   page_content text,
   metadata text,
   similarity float
@@ -84,6 +88,7 @@ language sql stable
 as $$
   select
     patentdocuments.id,
+    patentdocuments.document_id,
     patentdocuments.content,
     patentdocuments.metadata,
     1 - (patentdocuments.embedding <=> query_embedding) as similarity
