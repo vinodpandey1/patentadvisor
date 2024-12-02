@@ -1,6 +1,6 @@
-from service.metadataextraction.extractMetaData import process_multiple_pdfs
-from service import configReader
-from service.document import storeDocument, searchDocumentService
+from src.service.metadataextraction.extractMetaData import process_multiple_pdfs
+from src.service import configReader
+from src.service.document import storeDocument, searchDocumentService
 import os
 from dotenv import load_dotenv
 from langchain.retrievers.self_query.base import SelfQueryRetriever

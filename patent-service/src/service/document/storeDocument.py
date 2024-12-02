@@ -7,6 +7,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_openai import ChatOpenAI
 from langchain_chroma import Chroma
+import uuid
 
 from langchain_core.documents import Document
 from src.service import configReader, dbclient
@@ -129,9 +130,8 @@ def store_document(collectionName, documentname, document_chunks,metadata):
             document_temp = Document(
             page_content=text,
             metadata=metadata,
-            id=documentname+"_"+str(i),
-            patentid=documentname
+            id=documentname+"_"+str(i)
             )
             documents.append(document_temp)
 
-        vector_store.add_documents(documents, ids=[doc.id for doc in documents])   
+
