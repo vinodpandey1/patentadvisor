@@ -205,7 +205,7 @@ const YourFiles: React.FC<YourFilesProps> = ({ documents }) => {
                           </audio>
                         </DialogDescription>
                         <DialogFooter>
-                          <Button onClick={() => setSelectedDoc(null)} className="bg-[oklch(0.8_0.15_200.66)] text-white hover:bg-[oklch(0.7_0.15_200.66)]">Close</Button>
+                          <Button onClick={(closeModal) => setSelectedDoc(null)} className="bg-[oklch(0.8_0.15_200.66)] text-white hover:bg-[oklch(0.7_0.15_200.66)]">Close</Button>
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>

@@ -125,6 +125,7 @@ export async function POST(request: Request) {
 
     interface TransformedDocumentType {
       id: string;
+      patentId: string; // New field: file_name without extension
       file_name: string;
       created_at: string;
       summary: string;
@@ -140,6 +141,11 @@ export async function POST(request: Request) {
       documentId: string;
     }
 
+    // Helper function to remove file extension
+    const removeFileExtension = (filename: string): string => {
+      return filename.substring(0, filename.lastIndexOf(".")) || filename;
+    };
+
     // Extract the patentList
     const patentList: PatentResponse[] = pythonData.patentList;
 
@@ -147,6 +153,7 @@ export async function POST(request: Request) {
     const transformedData: TransformedDocumentType[] = patentList.map(
       (patent: PatentResponse) => ({
         id: patent.patentnumber || "N/A", // Use a unique identifier from the patent data
+        patentId: removeFileExtension(patent.filename || "N/A"), // Extract patentId
         file_name: patent.filename || "N/A",
         created_at: patent.filingdate || "N/A", // Adjust based on your requirements
         summary: patent.abstract || "N/A",
@@ -182,3 +189,5 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export default POST;

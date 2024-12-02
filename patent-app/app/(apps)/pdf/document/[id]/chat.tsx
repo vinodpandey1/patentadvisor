@@ -41,6 +41,14 @@ export default function DocumentClient({
   const documentId = currentDoc.id;
   const pdfUrl = currentDoc.file_url;
 
+  // Helper function to remove file extension
+  const removeFileExtension = (filename: string): string => {
+    return filename.substring(0, filename.lastIndexOf(".")) || filename;
+  };
+
+  // Extract patentId from file_name
+  const patentId = removeFileExtension(currentDoc.file_name || "N/A");
+
   // State to toggle PDF display
   const [showPdf, setShowPdf] = useState(true);
 
@@ -51,18 +59,49 @@ export default function DocumentClient({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState<number | null>(null);
 
-  // Extract images from currentDoc (ensure currentDoc.images exists)
-  // For demonstration purposes, assigning images directly
-  currentDoc.images = [
-    {
-      src: "http://localhost:3000/logo.png",
-      alt: "Description for Image 1",
-      description: "Detailed description for Image 1.",
-    },
-    // ... more images
-  ];
+  // State to store fetched images
+  const [images, setImages] = useState<ImageData[]>([]);
+  const [imagesLoading, setImagesLoading] = useState<boolean>(false);
+  const [imagesError, setImagesError] = useState<string | null>(null);
 
-  const images: ImageData[] = currentDoc.images || [];
+  // Fetch images from the new API route using patentId
+  useEffect(() => {
+    const fetchImages = async () => {
+      setImagesLoading(true);
+      setImagesError(null);
+
+      try {
+        const response = await fetch(`/api/pdf/patentImages?patentId=${encodeURIComponent(patentId)}`);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to fetch patent images.");
+        }
+
+        const data = await response.json();
+        // Ensure that data.images is an array
+        if (Array.isArray(data.images)) {
+          setImages(data.images);
+        } else {
+          // If data.images is not an array, set to empty array
+          setImages([]);
+          console.warn("Received images is not an array:", data.images);
+        }
+      } catch (error: any) {
+        console.error("Error fetching patent images:", error);
+        setImagesError(error.message || "An error occurred while fetching patent images.");
+      } finally {
+        setImagesLoading(false);
+      }
+    };
+
+    if (showImages && patentId !== "N/A") {
+      fetchImages();
+    } else {
+      // If not showing images or invalid patentId, clear images
+      setImages([]);
+      setImagesError(null);
+    }
+  }, [patentId, showImages]);
 
   // Handlers for opening and closing the modal
   const openModal = (index: number) => {
@@ -117,7 +156,7 @@ export default function DocumentClient({
     window.addEventListener("keydown", handleKeyDown);
 
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isModalOpen, currentImageIndex]);
+  }, [isModalOpen, currentImageIndex, images.length]);
 
   // New State for Python Chat API
   const [pythonChatMessages, setPythonChatMessages] = useState<any[]>([]);
@@ -144,7 +183,7 @@ export default function DocumentClient({
         },
         body: JSON.stringify({
           userId: userId, // Use the passed userId
-          documentId: documentId,
+          documentId: documentId, // If needed, otherwise you can pass patentId
           query: pythonQuery,
         }),
       });
@@ -206,51 +245,66 @@ export default function DocumentClient({
       </div>
 
       {/* Image Gallery Carousel */}
-      {showImages && images.length > 0 && (
+      {showImages && (
         <div className="w-full px-4 mb-8">
           <div className="bg-gray-50 p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-semibold mb-4 text-center">
               Extracted Images
             </h2>
-            <Swiper
-              // Install Swiper modules
-              modules={[Navigation, Pagination, A11y]}
-              spaceBetween={20}
-              slidesPerView={1}
-              navigation
-              pagination={{ clickable: true }}
-              breakpoints={{
-                // when window width is >= 640px
-                640: {
-                  slidesPerView: 2,
-                },
-                // when window width is >= 768px
-                768: {
-                  slidesPerView: 3,
-                },
-                // when window width is >= 1024px
-                1024: {
-                  slidesPerView: 4,
-                },
-              }}
-              className="mySwiper"
-            >
-              {images.map((image, index) => (
-                <SwiperSlide key={index}>
-                  <div
-                    className="cursor-pointer transform transition-transform duration-300 hover:scale-105"
-                    onClick={() => openModal(index)}
-                  >
-                    <img
-                      src={image.src}
-                      alt={image.alt}
-                      className="w-full h-40 object-cover rounded shadow"
-                      loading="lazy"
-                    />
-                  </div>
-                </SwiperSlide>
-              ))}
-            </Swiper>
+
+            {/* Loading and Error States */}
+            {imagesLoading && <p className="text-center">Loading images...</p>}
+            {imagesError && (
+              <p className="text-center text-red-500">Error: {imagesError}</p>
+            )}
+
+            {/* Swiper Carousel */}
+            {!imagesLoading && !imagesError && images.length > 0 && (
+              <Swiper
+                // Install Swiper modules
+                modules={[Navigation, Pagination, A11y]}
+                spaceBetween={30} // Increased space between slides from 20 to 30
+                slidesPerView={1}
+                navigation
+                pagination={{ clickable: true }}
+                breakpoints={{
+                  // when window width is >= 640px
+                  640: {
+                    slidesPerView: 2,
+                  },
+                  // when window width is >= 768px
+                  768: {
+                    slidesPerView: 3,
+                  },
+                  // when window width is >= 1024px
+                  1024: {
+                    slidesPerView: 4,
+                  },
+                }}
+                className="mySwiper"
+              >
+                {images.map((image, index) => (
+                  <SwiperSlide key={index}>
+                    <div
+                      className="cursor-pointer transform transition-transform duration-300 hover:scale-105 border border-gray-200 rounded-lg overflow-hidden shadow-md"
+                      onClick={() => openModal(index)}
+                    >
+                      <img
+                        src={image.src}
+                        alt={image.alt}
+                        className="w-full h-40 object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+            )}
+
+            {/* No Images Available */}
+            {!imagesLoading && !imagesError && images.length === 0 && (
+              <p className="text-center text-gray-700">No images available for this patent.</p>
+            )}
           </div>
         </div>
       )}
@@ -262,7 +316,7 @@ export default function DocumentClient({
         }`}
       >
         {/* Existing Chat Window - Commented Out */}
-        {/* 
+        {/*
         <div className="h-[90vh] overflow-hidden rounded-lg shadow-md">
           <ChatWindow
             endpoint="/api/pdf/chat"
@@ -272,7 +326,7 @@ export default function DocumentClient({
             initialMessages={initialMessages}
             documentId={documentId}
           />
-        </div> 
+        </div>
         */}
 
         {/* New Python Chat API Section */}
@@ -374,7 +428,10 @@ export default function DocumentClient({
             </p>
 
             {/* Close Button */}
-            <Button onClick={closeModal} className="mt-4">
+            <Button
+              onClick={closeModal}
+              className="mt-4 bg-[oklch(0.8_0.15_200.66)] text-white hover:bg-[oklch(0.7_0.15_200.66)]"
+            >
               Close
             </Button>
           </div>
