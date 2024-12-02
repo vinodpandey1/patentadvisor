@@ -9,7 +9,17 @@ export default function Hero() {
     // Facebook Pixel
     window.fbq("track", "InitiateCheckout");
 
-    
+    // TikTok Pixel
+    /*window.ttq.track("ViewContent", {
+      contents: [
+        {
+          content_id: "anotherwrapper-boilerplate-small", // string. ID of the product. Example: "1077218".
+          content_name: "anotherwrapper-small", // string. The name of the page or product. Example: "shirt".
+        },
+      ],
+      value: "137", // number. Value of the order or items sold. Example: 100.
+      currency: "USD", // string. The 4217 currency code. Example: "USD".
+    });*/
 
     // Scroll to Pricing
     window.location.href = "http://localhost:3000/#pricing";

@@ -1,3 +1,5 @@
+// app/pdf/document/[id]/Page.tsx
+
 import { createClient } from "@/lib/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Chat from "./chat";
@@ -60,7 +62,7 @@ export default async function Page({ params }: { params: { id: string } }) {
 
   return (
     <div data-theme={toolConfig.company.theme}>
-      <Chat currentDoc={currentDoc} initialMessages={initialMessages} />
+      <Chat currentDoc={currentDoc} initialMessages={initialMessages} userId={user.id} />
     </div>
   );
 }

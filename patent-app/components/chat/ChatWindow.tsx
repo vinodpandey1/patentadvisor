@@ -94,14 +94,13 @@ export function ChatWindow(props: {
     handleSubmit(e);
   }
 
-  // Commented out the scroll into window part because it was giving some issues
-  // useEffect(() => {
-  //   if (messageContainerRef.current && messageContainerRef.current.firstChild) {
-  //     (messageContainerRef.current.firstChild as HTMLElement).scrollIntoView({
-  //       behavior: "smooth",
-  //     });
-  //   }
-  // }, [messages]);
+  useEffect(() => {
+    if (messageContainerRef.current && messageContainerRef.current.firstChild) {
+      (messageContainerRef.current.firstChild as HTMLElement).scrollIntoView({
+        behavior: "smooth",
+      });
+    }
+  }, [messages]);
 
   return (
     <main className="flex flex-col w-full h-full no-scrollbar">

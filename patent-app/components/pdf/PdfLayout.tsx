@@ -22,12 +22,16 @@ interface DocumentType {
   file_name: string;
   created_at: string;
   size?: number;
-  summary: string;
+  pdf_summary: string;
   classification: string;
+  patent_id: string;
+  patent_title: string;
+  audio_url: string;
+  podcast_url: string;
 }
 
 const sidebarOptions = [
-  "Your Portfolio Patents",
+  "Patents",
   "Search Patent",
   "Upload Patent"
   // Add more options as needed
@@ -168,7 +172,7 @@ export default function PdfLayout({
             )}*/}
           </>
         );
-      case "Your Portfolio Patents":
+      case "Patents":
         return documents && documents.length > 0 ? (
           <YourFiles documents={documents} />
         ) : (

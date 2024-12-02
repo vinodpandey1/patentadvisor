@@ -29,7 +29,7 @@ export function ChatInputField({
           placeholder={placeholder ?? "Send a message here."}
           onChange={handleInputChange}
         />
-        <div className="absolute right-0 top-[13px] sm:right-4 px-2 md:px-0">
+        <div className="absolute r  ight-0 top-[13px] sm:right-4 px-2 md:px-0">
           <ShimmerButton
             className="inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-black text-primary-foreground shadow hover:bg-black/90 h-9 w-9"
             type="submit"

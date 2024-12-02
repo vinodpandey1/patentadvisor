@@ -195,7 +195,7 @@ export async function POST(req: NextRequest) {
         },
       ],
       filter: { document_id: documentId },
-    });
+    }); 
 
     const retrievalChain = retriever.pipe(combineDocumentsFn);
 
