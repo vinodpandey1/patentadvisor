@@ -119,6 +119,7 @@ def search(query: str):
     except Exception as e:
         logger.error(f"Error in searchDocument: {str(e)}") 
         return Response(content="Internal Error", status_code=500) 
+    
 
 @app.get("/queryDocument/{userid}/{documentId}")
 def searchDocument(query: str, userid:str, documentId: str):  
@@ -133,6 +134,22 @@ def searchDocument(query: str, userid:str, documentId: str):
         
     except Exception as e:
         logger.error(f"Error in searchDocument: {str(e)}") 
+        return Response(content="Internal Error", status_code=500) 
+
+@app.get("/gethistory/{userid}/{documentId}")
+def getConversationHistory( userid:str, documentId: str):  
+    try:
+        logger.info(f"Calling getConversationHistory API {userid} {documentId}")
+        history_dict = searchDocumentService.getConversationHistory(userid,documentId)
+        
+        response = {"history": history_dict, "documentId":documentId}        
+        response_json = json.dumps(response, indent=4)
+        response = json.loads(response_json)
+        # logger.info(f"Search results JSON Response :{response}")
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error in getConversationHistory: {str(e)}") 
         return Response(content="Internal Error", status_code=500) 
 
 @app.post("/patent/trigger/{patentID}")

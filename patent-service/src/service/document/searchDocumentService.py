@@ -89,8 +89,21 @@ def queryDocument(query, userid, documentID):
     # logger.info(llm_response)
     bias_analyzer = BiasAnalyser.analyze_sentiment_and_bias(llm_response)
     return llm_response , history_dict, bias_analyzer
+ 
+def getConversationHistory(userId, documentID):
     
-
+    logger.info(f"Get getConversationHistory for document {documentID}")
+    message_history = SupabaseChatMessageHistory(
+        session_id=userId,
+        documentId=documentID
+    )
+    chat_history = message_history.get_messages()
+    if len(chat_history) > 1:
+        history_dict = [{"role": msg.role, "content": msg.content} for msg in chat_history[0:5]]
+    else:
+        history_dict=[{}]
+    return history_dict
+        
 def getQueryStructure(query):
     
     document_content_description = "Patent Detail"
@@ -157,17 +170,6 @@ def update_operators(filter_dict):
     return updated_filter
 
 
-# def getSearchResultFromSupabase(query):
-#     try:
-#         client, collection, vector_store = dbclient.getDBClient("patentdocuments")
-#         embeddings = chatmodel.getEmbedding("openai-embedding")
-#         query_vector = embeddings.embed_query(query )
-#         results = client.rpc("match_documents_native", {"query_embedding": query_vector, "match_threshold": 0.5,"match_count": 5}
-#             ).execute()
-#         return results.data
-#     except Exception as e:
-#         logger.error(f"Error in Supabase Search: {e}")
-#         return None
 def getSearchResultFromSupabase(query):
     max_retries = 3
     delay = 2
