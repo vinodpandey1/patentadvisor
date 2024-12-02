@@ -135,7 +135,7 @@ export default function DocumentClient({
   const handlers = useSwipeable({
     onSwipedLeft: () => nextImage(),
     onSwipedRight: () => prevImage(),
-    preventDefault: true, // Updated property name
+    //preventDefaultTouchmoveEvent: true, // Correct property name
     trackMouse: true,
   });
 
