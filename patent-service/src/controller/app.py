@@ -106,9 +106,12 @@ def search(query: str):
         
         documentList = searchDocumentService.searchDocument(query)     
         
-        if not documentList or len(documentList) == 0:
-            return Response(content="No data found", status_code=404)
+        # if not documentList or len(documentList) == 0:
+        #     return Response(content="No data found", status_code=404)
           
+        if not documentList:
+            return {"patentList": []}
+        
         patent_list_json = json.dumps(documentList, indent=4)
         response = {"patentList": json.loads(patent_list_json)}
         
@@ -166,3 +169,6 @@ def invoke_questions_answer_using_agent(userId: str, patentID: str, query: str):
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0")
+    
+# task = Task.init(project_name = "patentsearch", task_name = "documentsearch") 
+
