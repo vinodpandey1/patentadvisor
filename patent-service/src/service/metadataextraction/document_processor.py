@@ -55,7 +55,8 @@ class MetaExtractor:
             "patent_id": patent_number,
             "patent_title": title
         }).eq("document_id", self.pdf_file_name_without_ext).execute()
-        logger.info(f"Stored information for {self.pdf_file_name} in {const.DOC_COLLECTION} - {patent_number} and {title}")
+        logger.info(
+            f"Stored information for {self.pdf_file_name} in {const.DOC_COLLECTION} - {patent_number} and {title}")
 
 
 def chunk_metadata(metadata):
@@ -74,12 +75,13 @@ def chunk_document(document):
 
 class DocumentProcessor:
 
-    def __init__(self, pdf_path, pdf_file_name, pdf_file_name_without_ext):
+    def __init__(self, pdf_path, pdf_file_name, pdf_file_name_without_ext, supabase):
         self.pdf_path = pdf_path
         self.pdf_file_name = pdf_file_name
         self.pdf_file_name_without_ext = pdf_file_name_without_ext
+        self.supabase = supabase
 
-    def process_document(self, metadata):
+    def process_document(self, metadata, uuid):
 
         loader = PyPDFLoader(self.pdf_path)
         document = loader.load()
@@ -93,6 +95,10 @@ class DocumentProcessor:
         logger.info(f"Stored metadata {self.pdf_file_name} in vector store collection {const.META_COLLECTION}")
         self.store_document(const.DOC_CHUNK_COLLECTION, document_chunks, metadata)
         logger.info(f"Stored document {self.pdf_file_name} in vector store collection {const.DOC_COLLECTION}")
+
+        self.store_uuid_in_documents(const.META_COLLECTION, uuid)
+        self.store_uuid_in_documents(const.DOC_CHUNK_COLLECTION, uuid)
+
 
     def store_document(self, collection_name, chunks, metadata):
 
@@ -121,3 +127,22 @@ class DocumentProcessor:
                 documents.append(document_temp)
 
             vector_store.add_documents(documents, ids=[doc.id for doc in documents])
+
+    def get_document_uuid(self):
+        response = (
+            self.supabase.table(const.DOC_COLLECTION)
+            .select("id")
+            .eq("document_id", self.pdf_file_name_without_ext)
+            .execute()
+        )
+        return response.data[0]['id']
+
+    def store_uuid_in_documents(self, collection_name, uuid):
+        response = (
+            self.supabase.table(collection_name)
+            .update({"document_id": uuid})
+            .like("id", self.pdf_file_name_without_ext + "%")
+            .execute()
+        )
+        logger.info(f"Response returned after updating document_id in {collection_name} for  {uuid} and"
+                    f" {self.pdf_file_name_without_ext} - {response.data[0]['document_id']}")

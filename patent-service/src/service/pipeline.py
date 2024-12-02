@@ -99,12 +99,16 @@ class PatentAdvisorPipeLine:
                 f.write(pdf_content)
                 logger.info(f"Downloaded PDF in local : {pdf_download_path}")
 
+            documentProcessor = DocumentProcessor(pdf_download_path, pdf_file_name, pdf_file_name_without_ext,
+                                                  self.supabase)
+            uuid = documentProcessor.get_document_uuid()
+            logger.info(f"UUID for document {pdf_file_name} is {uuid}")
+
             if pipeline_type == "meta" or pipeline_type == "all":
                 metaExtractor = MetaExtractor(pdf_download_path, pdf_file_name, pdf_file_name_without_ext)
                 metadata = metaExtractor.process_pdf_file()
                 metaExtractor.store_metadata_in_documents(self.supabase, metadata)
-                DocumentProcessor(pdf_download_path, pdf_file_name, pdf_file_name_without_ext).process_document(
-                    metadata)
+                documentProcessor.process_document(metadata, uuid)
 
             summary_output_file = const.OUTPUT_DIR + '/summary/' + pdf_file_name_without_ext + '.txt'
             if pipeline_type == "summary" or pipeline_type == "all" or pipeline_type == "audio":

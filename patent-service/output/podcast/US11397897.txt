@@ -1,0 +1,1 @@
+Script(scratchpad="No input provided. Please provide the text you'd like me to transform into a podcast script.", name_of_guest='', script=[])
