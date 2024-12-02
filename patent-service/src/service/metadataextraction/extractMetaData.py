@@ -1,8 +1,8 @@
 import os
 import pdfplumber
 import openai
-from service.llm.chatmodel import getChatModel
-from llmtemplate.template import METADATA_PROMPT_TEMPLATE, METADATAINFO_PROMPT_TEMPLATE
+from src.service.llm.chatmodel import getChatModel
+from src.llmtemplate.template import METADATA_PROMPT_TEMPLATE, METADATAINFO_PROMPT_TEMPLATE
 
 
 def extract_text_from_pdf(pdf_path):
