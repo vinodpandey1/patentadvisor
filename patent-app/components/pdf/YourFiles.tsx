@@ -38,8 +38,12 @@ interface DocumentType {
   file_name: string;
   created_at: string;
   size?: number;
-  summary: string;
+  pdf_summary: string;
   classification: string;
+  patent_id: string;
+  patent_title: string;
+  audio_url: string;
+  podcast_url: string;
 }
 
 const YourFiles: React.FC<YourFilesProps> = ({ documents }) => {
@@ -99,10 +103,11 @@ const YourFiles: React.FC<YourFilesProps> = ({ documents }) => {
                 <TableHead>File Name</TableHead>
                 <TableHead className="text-center">Uploaded</TableHead>
                 {/* Removed Size Column */}
+                <TableHead className="text-center">Title</TableHead>
                 <TableHead className="text-center">Summary</TableHead>
-                <TableHead className="text-center">Classification</TableHead>
-                <TableHead className="text-center">Convert Summary to Audio</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead className="text-center">Summary Audio</TableHead>
+                <TableHead className="text-center">Podcast Audio</TableHead>                
+                {/*<TableHead>Actions</TableHead>*/}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -119,6 +124,9 @@ const YourFiles: React.FC<YourFilesProps> = ({ documents }) => {
                   <TableCell className="text-center text-sm text-gray-500">
                     {formatDistanceToNow(new Date(doc.created_at))} ago
                   </TableCell>
+                  <TableCell className="text-center text-sm text-gray-500">
+                    {doc.patent_title}
+                  </TableCell>
                   <TableCell className="text-center">
                     <Dialog>
                       <DialogTrigger asChild>
@@ -134,10 +142,10 @@ const YourFiles: React.FC<YourFilesProps> = ({ documents }) => {
                       <DialogContent>
                         <DialogTitle>Summary</DialogTitle>
                         <DialogDescription>
-                          <p className="mb-4">{doc.summary}</p>
+                          <p className="mb-4">{doc.pdf_summary}</p>
                           <Button
                             variant="outline"
-                            onClick={() => handleCopy(doc.summary)}
+                            onClick={() => handleCopy(doc.pdf_summary)}
                             className="flex items-center space-x-2"
                           >
                             <ClipboardCopyIcon className="w-4 h-4" />
@@ -149,7 +157,7 @@ const YourFiles: React.FC<YourFilesProps> = ({ documents }) => {
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
-                  </TableCell>
+                  </TableCell>                  
                   <TableCell className="text-center">
                     <Dialog>
                       <DialogTrigger asChild>
@@ -157,38 +165,7 @@ const YourFiles: React.FC<YourFilesProps> = ({ documents }) => {
                           variant="ghost"
                           className="p-2 hover:bg-gray-700"
                           onClick={() => setSelectedDoc(doc)}
-                          aria-label="View Classification"
-                        >
-                          <BookOpenIcon className="w-4 h-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogTitle>Classification</DialogTitle>
-                        <DialogDescription>
-                          <p className="mb-4">{doc.classification}</p>
-                          <Button
-                            variant="outline"
-                            onClick={() => handleCopy(doc.classification)}
-                            className="flex items-center space-x-2"
-                          >
-                            <ClipboardCopyIcon className="w-4 h-4" />
-                            <span>Copy Classification</span>
-                          </Button>
-                        </DialogDescription>
-                        <DialogFooter>
-                          <Button onClick={() => setSelectedDoc(null)} className="bg-[oklch(0.8_0.15_200.66)] text-white hover:bg-[oklch(0.7_0.15_200.66)]">Close</Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className="p-2 hover:bg-gray-700"
-                          onClick={() => setSelectedDoc(doc)}
-                          aria-label="Convert Summary to Audio"
+                          aria-label="Audio Summary"
                         >
                           <Volume2Icon className="w-4 h-4" />
                         </Button>
@@ -197,7 +174,7 @@ const YourFiles: React.FC<YourFilesProps> = ({ documents }) => {
                         <DialogTitle>Audio Summary</DialogTitle>
                         <DialogDescription>
                           <audio controls className="w-full">
-                            <source src={`/api/pdf/synthesize/${doc.id}`} type="audio/mpeg" />
+                            <source src={doc.audio_url} type="audio/mpeg" />
                             Your browser does not support the audio element.
                           </audio>
                         </DialogDescription>
@@ -207,7 +184,33 @@ const YourFiles: React.FC<YourFilesProps> = ({ documents }) => {
                       </DialogContent>
                     </Dialog>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="p-2 hover:bg-gray-700"
+                          onClick={() => setSelectedDoc(doc)}
+                          aria-label="Podcast Audio"
+                        >
+                          <Volume2Icon className="w-4 h-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogTitle>Podcast Audio</DialogTitle>
+                        <DialogDescription>
+                          <audio controls className="w-full">
+                            <source src={doc.podcast_url} type="audio/mpeg" />
+                            Your browser does not support the audio element.
+                          </audio>
+                        </DialogDescription>
+                        <DialogFooter>
+                          <Button onClick={() => setSelectedDoc(null)} className="bg-[oklch(0.8_0.15_200.66)] text-white hover:bg-[oklch(0.7_0.15_200.66)]">Close</Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </TableCell>
+                  {/*<TableCell>
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button
@@ -236,7 +239,7 @@ const YourFiles: React.FC<YourFilesProps> = ({ documents }) => {
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
-                  </TableCell>
+                  </TableCell>*/}
                 </TableRow>
               ))}
             </TableBody>

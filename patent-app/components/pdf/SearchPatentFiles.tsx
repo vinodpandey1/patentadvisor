@@ -1,5 +1,6 @@
 // components/pdf/SearchPatentFiles.tsx
-import React, { useState, useEffect } from "react";
+
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -19,15 +20,14 @@ import {
 } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
 import { SearchIcon, ClipboardCopyIcon, BookOpenIcon, Volume2Icon } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 import {
-    Dialog,
-    DialogTrigger,
-    DialogContent,
-    DialogTitle,
-    DialogDescription,
-    DialogFooter,
-  } from "@/components/ui/dialog";
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface SearchPatentFilesProps {}
 
@@ -37,6 +37,16 @@ interface DocumentType {
   created_at: string;
   summary: string;
   classification: string;
+  title: string;
+  domain: string;
+  sector: string;
+  industry: string;
+  grantdate: string;
+  patentnumber: string;
+  applicationarea: string;
+  assignees: string;
+  documentId: string;
+  // Add other fields if necessary
 }
 
 const SearchPatentFiles: React.FC<SearchPatentFilesProps> = () => {
@@ -73,13 +83,20 @@ const SearchPatentFiles: React.FC<SearchPatentFilesProps> = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: searchText }),
+        credentials: "include", // Ensure cookies are sent
       });
 
       if (res.ok) {
         const data = await res.json();
-        setSearchResults(data.results);
+        if (data.results && Array.isArray(data.results)) {
+          setSearchResults(data.results);
+        } else {
+          console.error("Unexpected response structure:", data);
+          alert("Unexpected response format from search API.");
+        }
       } else {
-        alert("Failed to fetch search results.");
+        const errorData = await res.json();
+        alert(`Failed to fetch search results: ${errorData.error}`);
       }
     } catch (error) {
       console.error("Error searching patents:", error);
@@ -112,8 +129,11 @@ const SearchPatentFiles: React.FC<SearchPatentFilesProps> = () => {
           onChange={(e) => setSearchText(e.target.value)}
           className="flex-1"
         />
-        <Button onClick={handleSearch} disabled={isLoading}
-        className="bg-[oklch(0.8_0.15_200.66)] text-white hover:bg-[oklch(0.7_0.15_200.66)]">
+        <Button
+          onClick={handleSearch}
+          disabled={isLoading}
+          className="bg-[oklch(0.8_0.15_200.66)] text-white hover:bg-[oklch(0.7_0.15_200.66)]"
+        >
           <SearchIcon className="w-4 h-4 mr-2" />
           Search
         </Button>
@@ -132,10 +152,15 @@ const SearchPatentFiles: React.FC<SearchPatentFilesProps> = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>File Name</TableHead>
-                    <TableHead className="text-center">Uploaded</TableHead>
-                    <TableHead className="text-center">Summary</TableHead>
-                    <TableHead className="text-center">Classification</TableHead>
-                    <TableHead className="text-center">Convert Summary to Audio</TableHead>
+                    <TableHead className="text-center">Title</TableHead>
+                    <TableHead className="text-center">Domain</TableHead>
+                    <TableHead className="text-center">Sector</TableHead>
+                    <TableHead className="text-center">Industry</TableHead>
+                    <TableHead className="text-center">Grant Date</TableHead>
+                    <TableHead className="text-center">Patent Number</TableHead>                    
+                    <TableHead className="text-center">Assignee(s)</TableHead>
+                    <TableHead className="text-center">Abstract</TableHead>
+                    <TableHead className="text-center">Audio Summary</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -143,101 +168,82 @@ const SearchPatentFiles: React.FC<SearchPatentFilesProps> = () => {
                     <TableRow key={doc.id}>
                       <TableCell>
                         <a
-                          href={`/pdf/document/${doc.id}`}
+                          href={`/pdf/document/${doc.documentId}`}
                           className="text-primary hover:underline"
                         >
                           {doc.file_name}
                         </a>
                       </TableCell>
                       <TableCell className="text-center text-sm text-gray-500">
-                        {formatDistanceToNow(new Date(doc.created_at))} ago
+                        {doc.title}
                       </TableCell>
+                      <TableCell className="text-center">{doc.domain}</TableCell>
+                      <TableCell className="text-center">{doc.sector}</TableCell>
+                      <TableCell className="text-center">{doc.industry}</TableCell>
+                      <TableCell className="text-center">{doc.grantdate}</TableCell>
+                      <TableCell className="text-center">{doc.patentnumber}</TableCell>
+                      <TableCell className="text-center">{doc.assignees}</TableCell>
                       <TableCell className="text-center">
+                        {/* Summary Dialog */}
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button
                               variant="ghost"
                               className="p-2 hover:bg-gray-700"
-                              onClick={() => setSelectedDoc(doc)}
                               aria-label="View Summary"
+                              onClick={() => setSelectedDoc(doc)} // Set selected document
                             >
                               <BookOpenIcon className="w-4 h-4" />
                             </Button>
                           </DialogTrigger>
-                          <DialogContent>
-                            <DialogTitle>Summary</DialogTitle>
-                            <DialogDescription>
-                              <p className="mb-4">{doc.summary}</p>
-                              <Button
-                                variant="outline"
-                                onClick={() => handleCopy(doc.summary)}
-                                className="flex items-center space-x-2"
-                              >
-                                <ClipboardCopyIcon className="w-4 h-4" />
-                                <span>Copy Summary</span>
-                              </Button>
-                            </DialogDescription>
-                            <DialogFooter>
-                              <Button onClick={() => setSelectedDoc(null)}>Close</Button>
-                            </DialogFooter>
-                          </DialogContent>
+                          {selectedDoc && selectedDoc.id === doc.id && (
+                            <DialogContent>
+                              <DialogTitle>Abstract</DialogTitle>
+                              <DialogDescription>
+                                <p className="mb-4">{selectedDoc.summary}</p>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => handleCopy(selectedDoc.summary)}
+                                  className="flex items-center space-x-2"
+                                >
+                                  <ClipboardCopyIcon className="w-4 h-4" />
+                                  <span>Copy Abstract</span>
+                                </Button>
+                              </DialogDescription>
+                              <DialogFooter>
+                                <Button onClick={() => setSelectedDoc(null)}>Close</Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          )}
                         </Dialog>
                       </TableCell>
                       <TableCell className="text-center">
+                        {/* Audio Summary Dialog */}
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button
                               variant="ghost"
                               className="p-2 hover:bg-gray-700"
-                              onClick={() => setSelectedDoc(doc)}
-                              aria-label="View Classification"
-                            >
-                              <BookOpenIcon className="w-4 h-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogTitle>Classification</DialogTitle>
-                            <DialogDescription>
-                              <p className="mb-4">{doc.classification}</p>
-                              <Button
-                                variant="outline"
-                                onClick={() => handleCopy(doc.classification)}
-                                className="flex items-center space-x-2"
-                              >
-                                <ClipboardCopyIcon className="w-4 h-4" />
-                                <span>Copy Classification</span>
-                              </Button>
-                            </DialogDescription>
-                            <DialogFooter>
-                              <Button onClick={() => setSelectedDoc(null)}>Close</Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              className="p-2 hover:bg-gray-700"
-                              onClick={() => setSelectedDoc(doc)}
                               aria-label="Convert Summary to Audio"
+                              onClick={() => setSelectedDoc(doc)} // Set selected document
                             >
                               <Volume2Icon className="w-4 h-4" />
                             </Button>
                           </DialogTrigger>
-                          <DialogContent>
-                            <DialogTitle>Audio Summary</DialogTitle>
-                            <DialogDescription>
-                              <audio controls className="w-full">
-                                <source src={`/api/pdf/synthesize/${doc.id}`} type="audio/mpeg" />
-                                Your browser does not support the audio element.
-                              </audio>
-                            </DialogDescription>
-                            <DialogFooter>
-                              <Button onClick={() => setSelectedDoc(null)}>Close</Button>
-                            </DialogFooter>
-                          </DialogContent>
+                          {selectedDoc && selectedDoc.id === doc.id && (
+                            <DialogContent>
+                              <DialogTitle>Audio Summary</DialogTitle>
+                              <DialogDescription>
+                                <audio controls className="w-full">
+                                  <source src={`/api/pdf/synthesize/${selectedDoc.id}`} type="audio/mpeg" />
+                                  Your browser does not support the audio element.
+                                </audio>
+                              </DialogDescription>
+                              <DialogFooter>
+                                <Button onClick={() => setSelectedDoc(null)}>Close</Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          )}
                         </Dialog>
                       </TableCell>
                     </TableRow>
@@ -245,13 +251,17 @@ const SearchPatentFiles: React.FC<SearchPatentFilesProps> = () => {
                 </TableBody>
               </Table>
 
+              {/* Pagination */}
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
                     <PaginationPrevious
                       href="#"
                       className="hover:bg-primary/80 hover:text-white"
-                      onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handlePageChange(Math.max(1, currentPage - 1));
+                      }}
                     />
                   </PaginationItem>
                   {Array.from({ length: totalPages }, (_, i) => (
@@ -259,7 +269,10 @@ const SearchPatentFiles: React.FC<SearchPatentFilesProps> = () => {
                       <PaginationLink
                         href="#"
                         className="hover:bg-primary/80 hover:text-white"
-                        onClick={() => handlePageChange(i + 1)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handlePageChange(i + 1);
+                        }}
                         isActive={i + 1 === currentPage}
                       >
                         {i + 1}
@@ -270,9 +283,10 @@ const SearchPatentFiles: React.FC<SearchPatentFilesProps> = () => {
                     <PaginationNext
                       href="#"
                       className="hover:bg-primary/80 hover:text-white"
-                      onClick={() =>
-                        handlePageChange(Math.min(totalPages, currentPage + 1))
-                      }
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handlePageChange(Math.min(totalPages, currentPage + 1));
+                      }}
                     />
                   </PaginationItem>
                 </PaginationContent>
