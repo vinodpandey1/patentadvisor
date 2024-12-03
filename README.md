@@ -15,7 +15,7 @@ This is for backend services
      HOME_PATH=${SETUP_PATH}/patentadvisor/patent-service
      OPENAI_API_KEY=""
 
-2. Run main.py 
+2. Run main.py  
 
 ### Search API 
 
