@@ -128,15 +128,6 @@ class DocumentProcessor:
 
             vector_store.add_documents(documents, ids=[doc.id for doc in documents])
 
-    def get_document_uuid(self):
-        response = (
-            self.supabase.table(const.DOC_COLLECTION)
-            .select("id")
-            .eq("document_id", self.pdf_file_name_without_ext)
-            .execute()
-        )
-        return response.data[0]['id']
-
     def store_uuid_in_documents(self, collection_name, uuid):
         response = (
             self.supabase.table(collection_name)

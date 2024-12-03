@@ -101,7 +101,7 @@ class PatentAdvisorPipeLine:
 
             documentProcessor = DocumentProcessor(pdf_download_path, pdf_file_name, pdf_file_name_without_ext,
                                                   self.supabase)
-            uuid = documentProcessor.get_document_uuid()
+            uuid = utils.get_document_uuid(self.supabase, pdf_file_name_without_ext)
             logger.info(f"UUID for document {pdf_file_name} is {uuid}")
 
             if pipeline_type == "meta" or pipeline_type == "all":

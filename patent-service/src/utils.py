@@ -79,3 +79,13 @@ def is_output_file_exists(output_file):
         return True
     else:
         return False
+
+
+def get_document_uuid(supabase, pdf_file_name_without_ext):
+    response = (
+        supabase.table(const.DOC_COLLECTION)
+            .select("id")
+            .eq("document_id", pdf_file_name_without_ext)
+            .execute()
+    )
+    return response.data[0]['id']
