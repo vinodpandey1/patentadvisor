@@ -8,7 +8,7 @@ This is for backend services
 
 ### How to run 
 
-1. Add .env file
+1. Add .env file 
 
    Add the .env file in patent-service folder and add the below properties in .env file. Replace SETUP_PATH with the actual path. 
 
