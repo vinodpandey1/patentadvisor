@@ -272,7 +272,7 @@ def get_llm_response_for_document_search(contextValue, query, userId, documentId
     # logger.info(prompt)
     llm = getChatModel("gpt-3.5-turbo")
     llm.temperature = 0
-    llm.callback = callbacks
+    # llm.callback = callbacks
     response = llm.invoke(prompt)
     # logger.info(response.content)
     
