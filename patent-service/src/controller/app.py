@@ -112,6 +112,19 @@ def search(query: str):
         if not documentList:
             return {"patentList": []}
         
+        for document in documentList:
+            filename = document.get('filename', '')
+            patentID = filename.split('.')[0]
+            podcast_url = bucket_url + "/" + podcast_dir_prefix + patentID + ".wav"
+            audio_url = bucket_url + "/" + audio_dir_prefix + patentID + ".mp3"
+            file_key = summary_dir_prefix + patentID + ".txt"
+            file = s3_client.get_object(Bucket=bucket_name, Key=file_key)
+            file_content = file['Body'].read()
+            document['podcast_url'] = podcast_url
+            document['audio_url'] = audio_url
+            document['summary'] = file_content.decode('utf-8')
+            
+
         patent_list_json = json.dumps(documentList, indent=4)
         response = {"patentList": json.loads(patent_list_json)}
         

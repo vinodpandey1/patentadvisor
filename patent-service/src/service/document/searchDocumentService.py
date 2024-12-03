@@ -41,7 +41,7 @@ def searchDocument(query):
     documentIdList=[]
 
     for doc in results: 
-        
+        logger.info(f"Fetching Document {doc}")
         page_content = doc['page_content']
         
         logger.debug(f"Fetched Patent Content {page_content}")
@@ -52,10 +52,14 @@ def searchDocument(query):
         metadata=doc['metadata']
         logger.debug(f"Fetched Metadata  {metadata}")
         
+        similarity=doc['similarity']
+        similarity = round(similarity, 3)
+        
         if isinstance(metadata, str):
             metadata = json.loads(metadata)
             
             metadata['documentId'] = document_id
+            metadata['similarity_score'] = similarity
             assignees = metadata.get('assignees')
             if isinstance(assignees, str):
                 metadata['assignees'] = [assignees]
@@ -98,8 +102,10 @@ def getConversationHistory(userId, documentID):
         documentId=documentID
     )
     chat_history = message_history.get_messages()
+    
     if len(chat_history) > 1:
-        history_dict = [{"role": msg.role, "content": msg.content} for msg in chat_history[0:5]]
+        chat_history.reverse()
+        history_dict = [{"role": msg.role, "content": msg.content} for msg in chat_history[0:10]]
     else:
         history_dict=[{}]
     return history_dict
@@ -186,6 +192,7 @@ def getSearchResultFromSupabase(query):
             logger.info(results.data)
             return results.data
         except Exception as e:
+            logger.info(e)
             if hasattr(e, 'errno') and e.errno == errno.ECONNRESET:
                 logger.error(f"Connection reset by peer: {e}")
                 if attempt < max_retries - 1:
@@ -234,6 +241,7 @@ def queryDocumentFromSupabase(query, documentId):
             
             return results.data
         except Exception as e:
+            logger.info(e)
             if hasattr(e, 'errno') and e.errno == errno.ECONNRESET:
                 logger.error(f"Connection reset by peer: {e}")
                 if attempt < max_retries - 1:

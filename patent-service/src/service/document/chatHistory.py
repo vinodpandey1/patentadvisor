@@ -53,9 +53,9 @@ class SupabaseChatMessageHistory(BaseChatMessageHistory):
                     .filter("session_id", "eq", self.session_id) \
                     .filter("document_id", "eq", self.documentId) \
                     .order("timestamp", desc=True) \
-                    .limit(5) \
+                    .limit(2*5) \
                     .execute()
-                logger.info(f"Response: {response}")
+                # logger.info(f"Response: {response}")
                 break
             except Exception as e:
                 if hasattr(e, 'errno') and e.errno == errno.ECONNRESET:
