@@ -36,8 +36,8 @@ jobs:
 
       # Step 4: Build the Docker image
       - name: Build Docker image
-        working-directory: ./patent-service # Specify the subdirectory as the working directory
         run: |
+          cd patent-service
           docker build \
             --build-arg HOME_PATH=${{ secrets.HOME_PATH }} \
             --build-arg OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
@@ -56,11 +56,12 @@ jobs:
             --build-arg CLOUDFLARE_PATENT_DIRECTORY_PREFIX=${{ secrets.CLOUDFLARE_PATENT_DIRECTORY_PREFIX }} \
             --build-arg CLEARML_API_ACCESS_KEY=${{ secrets.CLEARML_API_ACCESS_KEY }} \
             --build-arg CLEARML_API_SECRET_KEY=${{ secrets.CLEARML_API_SECRET_KEY }} \
-            -t patent-service:latest \
-            -t patent-service:${{ env.COMMIT_HASH }} .
+            -t vinodpandey1/patent-service:latest \
+            -t vinodpandey1/patent-service:${{ env.COMMIT_HASH }} .
 
       # Step 5: Push the Docker image
       - name: Push Docker image
         run: |
-          docker push patent-service:latest
-          docker push patent-service:${{ env.COMMIT_HASH }}
+          docker push vinodpandey1/patent-service:latest
+          docker push vinodpandey1/patent-service:${{ env.COMMIT_HASH }}
+          
