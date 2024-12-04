@@ -86,7 +86,7 @@ def queryDocument(query, userid, documentID):
         try:
             results=queryDocumentFromSupabase(query,documentID)
             logger.info("Successfully fetched data from database")
-            logger.info(results)
+            # logger.info(results)
         except Exception as e:
             logger.error(f"Failed after retries: {e}")
             raise
@@ -283,12 +283,12 @@ def get_llm_response_for_document_search(contextValue, query, userId, documentId
 
     prompt  = DOCUMENT_QUERY_TEMPLATE.format(context=contextValue,input=query, history=history)
     
-    logger.info(prompt)
+    # logger.info(prompt)
     llm = getChatModel("gpt-4")
     llm.temperature = 0
     # llm.callback = callbacks
     response = llm.invoke(prompt)
-    logger.info(response.content)
+    # logger.info(response.content)
     
     # clearml_callback.flush_tracker(langchain_asset=llm, name="Document Search Response")
     
