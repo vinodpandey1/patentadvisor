@@ -198,7 +198,8 @@ def invoke_questions_answer_using_agent(userId: str, patentID: str, query: str):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0")
+
+    uvicorn.run(app, host="0.0.0.0",port=5001)
     
 # task = Task.init(project_name = "patentsearch", task_name = "documentsearch") 
 
