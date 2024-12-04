@@ -106,9 +106,25 @@ def search(query: str):
         
         documentList = searchDocumentService.searchDocument(query)     
         
-        if not documentList or len(documentList) == 0:
-            return Response(content="No data found", status_code=404)
+        # if not documentList or len(documentList) == 0:
+        #     return Response(content="No data found", status_code=404)
           
+        if not documentList:
+            return {"patentList": []}
+        
+        for document in documentList:
+            filename = document.get('filename', '')
+            patentID = filename.split('.')[0]
+            podcast_url = bucket_url + "/" + podcast_dir_prefix + patentID + ".wav"
+            audio_url = bucket_url + "/" + audio_dir_prefix + patentID + ".mp3"
+            file_key = summary_dir_prefix + patentID + ".txt"
+            file = s3_client.get_object(Bucket=bucket_name, Key=file_key)
+            file_content = file['Body'].read()
+            document['podcast_url'] = podcast_url
+            document['audio_url'] = audio_url
+            document['summary'] = file_content.decode('utf-8')
+            
+
         patent_list_json = json.dumps(documentList, indent=4)
         response = {"patentList": json.loads(patent_list_json)}
         
@@ -116,6 +132,7 @@ def search(query: str):
     except Exception as e:
         logger.error(f"Error in searchDocument: {str(e)}") 
         return Response(content="Internal Error", status_code=500) 
+    
 
 @app.get("/queryDocument/{userid}/{documentId}")
 def searchDocument(query: str, userid:str, documentId: str):  
@@ -130,6 +147,22 @@ def searchDocument(query: str, userid:str, documentId: str):
         
     except Exception as e:
         logger.error(f"Error in searchDocument: {str(e)}") 
+        return Response(content="Internal Error", status_code=500) 
+
+@app.get("/gethistory/{userid}/{documentId}")
+def getConversationHistory( userid:str, documentId: str):  
+    try:
+        logger.info(f"Calling getConversationHistory API {userid} {documentId}")
+        history_dict = searchDocumentService.getConversationHistory(userid,documentId)
+        
+        response = {"history": history_dict, "documentId":documentId}        
+        response_json = json.dumps(response, indent=4)
+        response = json.loads(response_json)
+        # logger.info(f"Search results JSON Response :{response}")
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error in getConversationHistory: {str(e)}") 
         return Response(content="Internal Error", status_code=500) 
 
 @app.post("/patent/trigger/{patentID}")
@@ -166,3 +199,6 @@ def invoke_questions_answer_using_agent(userId: str, patentID: str, query: str):
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0")
+    
+# task = Task.init(project_name = "patentsearch", task_name = "documentsearch") 
+

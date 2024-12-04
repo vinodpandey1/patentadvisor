@@ -14,31 +14,62 @@ class SupabaseChatMessageHistory(BaseChatMessageHistory):
     def add_message(self, message: ChatMessage) -> None:
         logger.info("Add a message to the conversation history.")
         
+        max_retries = 3
+        delay = 2
         current_timestamp = datetime.datetime.utcnow().isoformat()
-        logger.info(current_timestamp)
-        
-        self.supabase.table("conversation_history").insert({
-            "session_id": self.session_id,
-            "document_id": self.documentId,
-            "role": message.type,
-            "message": message.content,
-            "timestamp": current_timestamp,
-        }).execute()
+        for attempt in range(max_retries):
+            try:
+                self.supabase.table("conversation_history").insert({
+                    "session_id": self.session_id,
+                    "document_id": self.documentId,
+                    "role": message.type,
+                    "message": message.content,
+                    "timestamp": current_timestamp,
+                }).execute()
+                return
+            except Exception as e:
+                if hasattr(e, 'errno') and e.errno == errno.ECONNRESET:
+                    logger.error(f"Connection reset by peer: {e}")
+                    if attempt < max_retries - 1:
+                        logger.info(f"Retrying in {delay} seconds...")
+                        time.sleep(delay)
+                        delay *= 2  # Exponential backoff
+                    else:
+                        logger.error("Max retries reached. Failing.")
+                        raise
+                else:
+                    logger.error(f"Error in Supabase operation: {e}")
+                    raise
 
     def get_messages(self) -> list[ChatMessage]:
         """Retrieve all messages for the session."""
         logger.info(f"Fetching messages for session {self.session_id}")
-        try:
-            response = self.supabase.table("conversation_history") \
-                .select("*") \
-                .filter("session_id", "eq", self.session_id) \
-                .filter("document_id", "eq", self.documentId) \
-                .order("timestamp", desc=True) \
-                .limit(10) \
-                .execute() 
-            # logger.info(f"Response: {response}")
-        except Exception as e:
-            raise ValueError(f"Error fetching messages: {e}")
+        max_retries = 3
+        delay = 2
+        for attempt in range(max_retries):
+            try:
+                response = self.supabase.table("conversation_history") \
+                    .select("*") \
+                    .filter("session_id", "eq", self.session_id) \
+                    .filter("document_id", "eq", self.documentId) \
+                    .order("timestamp", desc=True) \
+                    .limit(2*5) \
+                    .execute()
+                # logger.info(f"Response: {response}")
+                break
+            except Exception as e:
+                if hasattr(e, 'errno') and e.errno == errno.ECONNRESET:
+                    logger.error(f"Connection reset by peer: {e}")
+                    if attempt < max_retries - 1:
+                        logger.info(f"Retrying in {delay} seconds...")
+                        time.sleep(delay)
+                        delay *= 2  # Exponential backoff
+                    else:
+                        logger.error("Max retries reached. Failing.")
+                        raise
+                else:
+                    logger.error(f"Error fetching messages: {e}")
+                    raise
 
         # Convert rows into ChatMessage objects
         # if response.error:
