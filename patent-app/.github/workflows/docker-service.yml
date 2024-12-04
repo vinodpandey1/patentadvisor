@@ -1,0 +1,66 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'patent-service/**' # Trigger only when files in the 'patent-service' directory change
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'patent-service/**' # Trigger only on pull requests with changes in 'patent-service'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Log in to Docker Hub (or another registry)
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Step 3: Get the commit hash
+      - name: Extract commit hash
+        id: vars
+        run: echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      # Step 4: Build the Docker image
+      - name: Build Docker image
+        working-directory: ./patent-service # Specify the subdirectory as the working directory
+        run: |
+          docker build \
+            --build-arg HOME_PATH=${{ secrets.HOME_PATH }} \
+            --build-arg OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+            --build-arg SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --build-arg SUPABASE_KEY=${{ secrets.SUPABASE_KEY }} \
+            --build-arg CLOUDFLARE_R2_ACCESS_KEY=${{ secrets.CLOUDFLARE_R2_ACCESS_KEY }} \
+            --build-arg CLOUDFLARE_R2_SECRET_KEY=${{ secrets.CLOUDFLARE_R2_SECRET_KEY }} \
+            --build-arg CLOUDFLARE_URL=${{ secrets.CLOUDFLARE_URL }} \
+            --build-arg CLOUDFLARE_BUCKET_NAME=${{ secrets.CLOUDFLARE_BUCKET_NAME }} \
+            --build-arg CLOUDFLARE_BUCKET_URL=${{ secrets.CLOUDFLARE_BUCKET_URL }} \
+            --build-arg CLOUDFLARE_UPLOAD_DIRECTORY_PREFIX=${{ secrets.CLOUDFLARE_UPLOAD_DIRECTORY_PREFIX }} \
+            --build-arg CLOUDFLARE_SUMMARY_DIRECTORY_PREFIX=${{ secrets.CLOUDFLARE_SUMMARY_DIRECTORY_PREFIX }} \
+            --build-arg CLOUDFLARE_AUDIO_DIRECTORY_PREFIX=${{ secrets.CLOUDFLARE_AUDIO_DIRECTORY_PREFIX }} \
+            --build-arg CLOUDFLARE_PODCAST_DIRECTORY_PREFIX=${{ secrets.CLOUDFLARE_PODCAST_DIRECTORY_PREFIX }} \
+            --build-arg CLOUDFLARE_IMAGE_DIRECTORY_PREFIX=${{ secrets.CLOUDFLARE_IMAGE_DIRECTORY_PREFIX }} \
+            --build-arg CLOUDFLARE_PATENT_DIRECTORY_PREFIX=${{ secrets.CLOUDFLARE_PATENT_DIRECTORY_PREFIX }} \
+            --build-arg CLEARML_API_ACCESS_KEY=${{ secrets.CLEARML_API_ACCESS_KEY }} \
+            --build-arg CLEARML_API_SECRET_KEY=${{ secrets.CLEARML_API_SECRET_KEY }} \
+            -t patent-service:latest \
+            -t patent-service:${{ env.COMMIT_HASH }} .
+
+      # Step 5: Push the Docker image
+      - name: Push Docker image
+        run: |
+          docker push patent-service:latest
+          docker push patent-service:${{ env.COMMIT_HASH }}
