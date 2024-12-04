@@ -38,6 +38,7 @@ jobs:
       - name: Build Docker image
         working-directory: ./patent-service # Specify the subdirectory as the working directory
         run: |
+          cd patent-service
           docker build \
             --build-arg HOME_PATH=${{ secrets.HOME_PATH }} \
             --build-arg OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
