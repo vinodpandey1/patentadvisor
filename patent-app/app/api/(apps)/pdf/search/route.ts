@@ -51,9 +51,9 @@ export async function POST(request: Request) {
     console.log(`User ${userEmail} is searching for: "${query}"`);
 
     // Call the Python API using IPv4 address
-    const pythonApiUrl = `${process.env.NEXT_PUBLIC_API_URL}/searchPatent?query=${encodeURIComponent(
+    const pythonApiUrl = `http://127.0.0.1:5001/searchPatent?query=${encodeURIComponent(
       query
-    )}`;
+    )}`; 
 
     const pythonResponse = await fetch(pythonApiUrl, {
       method: "GET",
@@ -121,6 +121,8 @@ export async function POST(request: Request) {
       provisionalapplicationdate: string;
       filename: string;
       documentId: string;
+      podcast_url: string;
+      audio_url: string;
     }
 
     interface TransformedDocumentType {
@@ -139,6 +141,9 @@ export async function POST(request: Request) {
       applicationarea: string;
       assignees: string;
       documentId: string;
+      podcast_url: string;
+      audio_url: string;
+      abstract: string;
     }
 
     // Helper function to remove file extension
@@ -166,6 +171,9 @@ export async function POST(request: Request) {
         patentnumber: patent.patentnumber || "N/A",
         applicationarea: patent.applicationarea || "N/A",
         documentId: patent.documentId || "N/A",
+        podcast_url: patent.podcast_url,
+        audio_url: patent.audio_url,
+        abstract: patent.abstract,
         assignees:
           patent.assignees && patent.assignees.length > 0
             ? patent.assignees.join(", ")
@@ -190,4 +198,3 @@ export async function POST(request: Request) {
   }
 }
 
-// export default POST;

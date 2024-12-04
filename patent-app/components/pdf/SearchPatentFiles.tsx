@@ -28,6 +28,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { TriggerConfig } from "react-hook-form";
 
 interface SearchPatentFilesProps {}
 
@@ -46,6 +47,9 @@ interface DocumentType {
   applicationarea: string;
   assignees: string;
   documentId: string;
+  podcast_url: string;
+  audio_url: string;
+  abstract: string;
   // Add other fields if necessary
 }
 
@@ -157,10 +161,11 @@ const SearchPatentFiles: React.FC<SearchPatentFilesProps> = () => {
                     <TableHead className="text-center">Sector</TableHead>
                     <TableHead className="text-center">Industry</TableHead>
                     <TableHead className="text-center">Grant Date</TableHead>
-                    <TableHead className="text-center">Patent Number</TableHead>                    
+                    <TableHead className="text-center w-64 whitespace-nowrap">Patent Number</TableHead>                    
                     <TableHead className="text-center">Assignee(s)</TableHead>
                     <TableHead className="text-center">Abstract</TableHead>
-                    <TableHead className="text-center">Audio Summary</TableHead>
+                    <TableHead className="text-center">Summary Audio</TableHead>
+                    <TableHead className="text-center">Podcast Audio</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -174,15 +179,15 @@ const SearchPatentFiles: React.FC<SearchPatentFilesProps> = () => {
                           {doc.file_name}
                         </a>
                       </TableCell>
-                      <TableCell className="text-center text-sm text-gray-500">
+                      <TableCell className="text-left text-sm text-gray-500">
                         {doc.title}
                       </TableCell>
                       <TableCell className="text-center">{doc.domain}</TableCell>
                       <TableCell className="text-center">{doc.sector}</TableCell>
                       <TableCell className="text-center">{doc.industry}</TableCell>
-                      <TableCell className="text-center">{doc.grantdate}</TableCell>
-                      <TableCell className="text-center">{doc.patentnumber}</TableCell>
-                      <TableCell className="text-center">{doc.assignees}</TableCell>
+                      <TableCell className="text-left">{doc.grantdate}</TableCell>
+                      <TableCell className="text-left w-64 whitespace-nowrap">{doc.patentnumber}</TableCell>
+                      <TableCell className="text-left">{doc.assignees}</TableCell>
                       <TableCell className="text-center">
                         {/* Summary Dialog */}
                         <Dialog>
@@ -200,10 +205,10 @@ const SearchPatentFiles: React.FC<SearchPatentFilesProps> = () => {
                             <DialogContent>
                               <DialogTitle>Abstract</DialogTitle>
                               <DialogDescription>
-                                <p className="mb-4">{selectedDoc.summary}</p>
+                                <p className="mb-4">{selectedDoc.abstract}</p>
                                 <Button
                                   variant="outline"
-                                  onClick={() => handleCopy(selectedDoc.summary)}
+                                  onClick={() => handleCopy(selectedDoc.abstract)}
                                   className="flex items-center space-x-2"
                                 >
                                   <ClipboardCopyIcon className="w-4 h-4" />
@@ -211,7 +216,7 @@ const SearchPatentFiles: React.FC<SearchPatentFilesProps> = () => {
                                 </Button>
                               </DialogDescription>
                               <DialogFooter>
-                                <Button onClick={() => setSelectedDoc(null)}>Close</Button>
+                                <Button onClick={() => setSelectedDoc(null)} className="bg-[oklch(0.8_0.15_200.66)] text-white hover:bg-[oklch(0.7_0.15_200.66)]">Close</Button>
                               </DialogFooter>
                             </DialogContent>
                           )}
@@ -235,12 +240,41 @@ const SearchPatentFiles: React.FC<SearchPatentFilesProps> = () => {
                               <DialogTitle>Audio Summary</DialogTitle>
                               <DialogDescription>
                                 <audio controls className="w-full">
-                                  <source src={`/api/pdf/synthesize/${selectedDoc.id}`} type="audio/mpeg" />
+                                  <source src={selectedDoc.audio_url} type="audio/mpeg" />
                                   Your browser does not support the audio element.
                                 </audio>
                               </DialogDescription>
                               <DialogFooter>
-                                <Button onClick={() => setSelectedDoc(null)}>Close</Button>
+                                <Button onClick={() => setSelectedDoc(null)} className="bg-[oklch(0.8_0.15_200.66)] text-white hover:bg-[oklch(0.7_0.15_200.66)]">Close</Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          )}
+                        </Dialog>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {/* Podcast Audio Dialog */}
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              className="p-2 hover:bg-gray-700"
+                              aria-label="Podcast Audio"
+                              onClick={() => setSelectedDoc(doc)} // Set selected document
+                            >
+                              <Volume2Icon className="w-4 h-4" />
+                            </Button>
+                          </DialogTrigger>
+                          {selectedDoc && selectedDoc.id === doc.id && (
+                            <DialogContent>
+                              <DialogTitle>Podcast Audio</DialogTitle>
+                              <DialogDescription>
+                                <audio controls className="w-full">
+                                  <source src={selectedDoc.podcast_url} type="audio/mpeg" />
+                                  Your browser does not support the audio element.
+                                </audio>
+                              </DialogDescription>
+                              <DialogFooter>
+                                <Button onClick={() => setSelectedDoc(null)} className="bg-[oklch(0.8_0.15_200.66)] text-white hover:bg-[oklch(0.7_0.15_200.66)]">Close</Button>
                               </DialogFooter>
                             </DialogContent>
                           )}
