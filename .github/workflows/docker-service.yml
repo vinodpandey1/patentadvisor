@@ -5,13 +5,13 @@ on:
     branches:
       - main
     paths:
-      - '../../patent-service' # Trigger only when files in the 'patent-service' directory change
+      - 'patent-service/**' # Trigger only when files in the 'patent-service' directory change
 
   pull_request:
     branches:
       - main
     paths:
-      - '../../patent-service' # Trigger only on pull requests with changes in 'patent-service'
+      - 'patent-service/**' # Trigger only on pull requests with changes in 'patent-service'
 
 jobs:
   build:
