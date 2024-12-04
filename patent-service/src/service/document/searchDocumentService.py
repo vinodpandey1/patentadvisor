@@ -24,6 +24,7 @@ from src.llmtemplate.template import DOCUMENT_QUERY_TEMPLATE
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationChain
 from langchain_core.messages import SystemMessage, AIMessage, HumanMessage
+import traceback
 
 
 def searchDocument(query):
@@ -85,6 +86,7 @@ def queryDocument(query, userid, documentID):
         try:
             results=queryDocumentFromSupabase(query,documentID)
             logger.info("Successfully fetched data from database")
+            logger.info(results)
         except Exception as e:
             logger.error(f"Failed after retries: {e}")
             raise
@@ -241,7 +243,10 @@ def queryDocumentFromSupabase(query, documentId):
             
             return results.data
         except Exception as e:
-            logger.info(e)
+           
+            logger.error(f"Error type: {type(e).__name__}")
+            logger.error(f"Stack trace: {traceback.format_exc()}")
+           
             if hasattr(e, 'errno') and e.errno == errno.ECONNRESET:
                 logger.error(f"Connection reset by peer: {e}")
                 if attempt < max_retries - 1:
@@ -267,6 +272,7 @@ def get_llm_response_for_document_search(contextValue, query, userId, documentId
     chat_history = message_history.get_messages()
     # logger.info(f"chat history {chat_history}")
     if len(chat_history) > 1:
+        chat_history.reverse()
         history = "\n".join([f"{msg.role}: {msg.content}" for msg in chat_history[0:4]])
         history_dict = [{"role": msg.role, "content": msg.content} for msg in chat_history[0:5]]
     else:
@@ -277,18 +283,18 @@ def get_llm_response_for_document_search(contextValue, query, userId, documentId
 
     prompt  = DOCUMENT_QUERY_TEMPLATE.format(context=contextValue,input=query, history=history)
     
-    # logger.info(prompt)
-    llm = getChatModel("gpt-3.5-turbo")
+    logger.info(prompt)
+    llm = getChatModel("gpt-4")
     llm.temperature = 0
     # llm.callback = callbacks
     response = llm.invoke(prompt)
-    # logger.info(response.content)
+    logger.info(response.content)
     
     # clearml_callback.flush_tracker(langchain_asset=llm, name="Document Search Response")
     
     message_history.add_messages([
-        AIMessage(content=response.content),
         HumanMessage(content=query),
+        AIMessage(content=response.content),
     ])
     return response.content, history_dict
 
