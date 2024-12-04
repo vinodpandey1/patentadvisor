@@ -60,9 +60,18 @@ export default async function Page({ params }: { params: { id: string } }) {
     }
   }
 
+  // Extract userId and documentId for fetching history
+  const userId = user.id;
+  const documentId = currentDoc.id;
+
   return (
     <div data-theme={toolConfig.company.theme}>
-      <Chat currentDoc={currentDoc} initialMessages={initialMessages} userId={user.id} />
+      <Chat
+        currentDoc={currentDoc}
+        initialMessages={initialMessages}
+        userId={userId}
+        documentId={documentId}
+      />
     </div>
   );
 }

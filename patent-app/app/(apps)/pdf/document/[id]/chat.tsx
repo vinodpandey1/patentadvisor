@@ -3,10 +3,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-// import { ChatWindow } from "@/components/chat/ChatWindow"; // Commented out
 import ChatWelcome from "@/components/chat/ChatWelcome";
 import { Switch } from "@/components/ui/switch";
-import { Modal } from "@/components/ui/Modal"; // Ensure correct imports via index.ts
+import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/button";
 import { useSwipeable } from "react-swipeable";
 
@@ -30,15 +29,16 @@ interface ImageData {
 interface ChatProps {
   currentDoc: any;
   initialMessages: any[];
-  userId: string; // Added userId prop
+  userId: string;
+  documentId: string;
 }
 
 export default function DocumentClient({
   currentDoc,
   initialMessages,
-  userId, // Destructure userId
+  userId,
+  documentId,
 }: ChatProps) {
-  const documentId = currentDoc.id;
   const pdfUrl = currentDoc.file_url;
 
   // Helper function to remove file extension
@@ -53,7 +53,7 @@ export default function DocumentClient({
   const [showPdf, setShowPdf] = useState(true);
 
   // State to toggle Image Gallery display
-  const [showImages, setShowImages] = useState(true); // Set to 'true' by default or as desired
+  const [showImages, setShowImages] = useState(true);
 
   // State for Image Gallery Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -135,7 +135,6 @@ export default function DocumentClient({
   const handlers = useSwipeable({
     onSwipedLeft: () => nextImage(),
     onSwipedRight: () => prevImage(),
-    //preventDefaultTouchmoveEvent: true, // Correct property name
     trackMouse: true,
   });
 
@@ -158,20 +157,80 @@ export default function DocumentClient({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isModalOpen, currentImageIndex, images.length]);
 
-  // New State for Python Chat API
-  const [pythonChatMessages, setPythonChatMessages] = useState<any[]>([]);
+  // Consolidated Messages State
+  const [messages, setMessages] = useState<any[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState<boolean>(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
+  // State for Python Chat API
   const [pythonQuery, setPythonQuery] = useState<string>("");
   const [pythonIsLoading, setPythonIsLoading] = useState<boolean>(false);
 
+  // Helper functions to determine labels and colors based on sentiment values
+  const getPolarityLabel = (polarity: number): { label: string; color: string } => {
+    if (polarity > 0.1) return { label: "Positive", color: "bg-green-200 text-green-800" };
+    if (polarity < -0.1) return { label: "Negative", color: "bg-red-200 text-red-800" };
+    return { label: "Neutral", color: "bg-gray-200 text-gray-800" };
+  };
+
+  const getSubjectivityLabel = (subjectivity: number): { label: string; color: string } => {
+    if (subjectivity > 0.5) return { label: "Subjective", color: "bg-yellow-200 text-yellow-800" };
+    return { label: "Objective", color: "bg-blue-200 text-blue-800" };
+  };
+
+  // Fetch Chat History on Component Mount
+  useEffect(() => {
+    const fetchChatHistory = async () => {
+      setIsHistoryLoading(true);
+      setHistoryError(null);
+
+      try {
+        const response = await fetch(
+          `/api/pdf/getHistory/${encodeURIComponent(userId)}/${encodeURIComponent(documentId)}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to fetch chat history.");
+        }
+
+        const data = await response.json();
+
+        if (data.history && Array.isArray(data.history)) {
+          setMessages(data.history);
+        } else {
+          setHistoryError("Invalid chat history format received.");
+        }
+      } catch (error: any) {
+        console.error("Error fetching chat history:", error);
+        setHistoryError(error.message || "An error occurred while fetching chat history.");
+      } finally {
+        setIsHistoryLoading(false);
+      }
+    };
+
+    // Fetch history only if userId and documentId are valid
+    if (userId && documentId) {
+      fetchChatHistory();
+    }
+  }, [userId, documentId]);
+
+  // Handler to send queries to the Python Chat API
   const handlePythonSend = async () => {
     if (!pythonQuery.trim()) {
       alert("Please enter a query for the Python Chat API.");
       return;
     }
 
-    // Add the human message to pythonChatMessages
+    // Add the human message to messages using functional update
     const newHumanMessage = { role: "human", content: pythonQuery };
-    setPythonChatMessages([...pythonChatMessages, newHumanMessage]);
+    setMessages((prevMessages) => [...prevMessages, newHumanMessage]);
 
     setPythonIsLoading(true);
 
@@ -182,8 +241,7 @@ export default function DocumentClient({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          userId: userId, // Use the passed userId
-          documentId: documentId, // If needed, otherwise you can pass patentId
+          documentId: documentId, // Use the passed documentId
           query: pythonQuery,
         }),
       });
@@ -197,9 +255,26 @@ export default function DocumentClient({
 
       const data = await response.json();
 
-      // Add the AI response to pythonChatMessages
-      const newAiMessage = { role: "ai", content: data.answer };
-      setPythonChatMessages([...pythonChatMessages, newHumanMessage, newAiMessage]);
+      // Check if 'answer' and 'bias.sentiment' exist and are valid
+      if (
+        data.answer &&
+        typeof data.answer === "string" &&
+        data.bias &&
+        data.bias.sentiment
+      ) {
+        const newAiMessage = {
+          role: "ai",
+          content: data.answer,
+          sentiment: {
+            polarity: data.bias.sentiment.polarity,
+            subjectivity: data.bias.sentiment.subjectivity,
+          },
+        };
+        setMessages((prevMessages) => [...prevMessages, newAiMessage]);
+      } else {
+        console.warn("Incomplete data received from Python Chat API:", data);
+        alert("Received incomplete data from the Python Chat API.");
+      }
     } catch (error) {
       console.error("Error communicating with Python Chat API:", error);
       alert("An error occurred while communicating with the Python Chat API.");
@@ -263,7 +338,7 @@ export default function DocumentClient({
               <Swiper
                 // Install Swiper modules
                 modules={[Navigation, Pagination, A11y]}
-                spaceBetween={30} // Increased space between slides from 20 to 30
+                spaceBetween={30}
                 slidesPerView={1}
                 navigation
                 pagination={{ clickable: true }}
@@ -334,27 +409,53 @@ export default function DocumentClient({
           <div className="flex flex-col h-full">
             {/* Chat Header */}
             <div className="p-4 bg-gray-100 border-b border-gray-300">
-              <h2 className="text-xl font-semibold">Python Chat API</h2>
+              <h2 className="text-xl font-semibold">Chat with Patent Document</h2>
             </div>
 
             {/* Chat Messages */}
             <div className="flex-1 p-4 overflow-y-auto bg-gray-50">
-              {pythonChatMessages.map((msg, index) => (
-                <div
-                  key={index}
-                  className={`mb-4 flex ${
-                    msg.role === "human" ? "justify-end" : "justify-start"
-                  }`}
-                >
+              {/* Display Chat History */}
+              {isHistoryLoading && <p>Loading chat history...</p>}
+              {historyError && <p className="text-red-500">Error: {historyError}</p>}
+              {!isHistoryLoading && !historyError && messages.length > 0 && (
+                messages.map((msg, index) => (
                   <div
-                    className={`${
-                      msg.role === "human" ? "bg-blue-500 text-white" : "bg-gray-300 text-black"
-                    } rounded-lg p-2 max-w-xs`}
+                    key={index}
+                    className={`mb-4 flex ${
+                      msg.role === "human" ? "justify-end" : "justify-start"
+                    }`}
                   >
-                    {msg.content}
+                    <div
+                      className={`${
+                        msg.role === "human" ? "bg-blue-500 text-white" : "bg-gray-300 text-black"
+                      } rounded-lg p-2 max-w-xs`}
+                    >
+                      {msg.content}
+                      
+                      {/* Display sentiment data for AI messages */}
+                      {msg.role === "ai" && msg.sentiment && (
+                        <div className="mt-2 text-sm">
+                          <span
+                            className={`inline-block px-2 py-1 rounded mr-2 ${getPolarityLabel(msg.sentiment.polarity).color}`}
+                          >
+                            Polarity: {getPolarityLabel(msg.sentiment.polarity).label} ({msg.sentiment.polarity.toFixed(2)})
+                          </span>
+                          <span
+                            className={`inline-block px-2 py-1 rounded ${getSubjectivityLabel(msg.sentiment.subjectivity).color}`}
+                          >
+                            Subjectivity: {getSubjectivityLabel(msg.sentiment.subjectivity).label} ({msg.sentiment.subjectivity.toFixed(2)})
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
+
+              {/* No Chat History */}
+              {!isHistoryLoading && !historyError && messages.length === 0 && (
+                <p className="text-center text-gray-700">No chat history available.</p>
+              )}
             </div>
 
             {/* Chat Input */}
@@ -363,7 +464,7 @@ export default function DocumentClient({
                 type="text"
                 value={pythonQuery}
                 onChange={(e) => setPythonQuery(e.target.value)}
-                placeholder="Ask the Python Chat API..."
+                placeholder="Start Q&A With this patent document..."
                 className="flex-1 border border-gray-300 rounded p-2"
               />
               <Button
@@ -423,7 +524,7 @@ export default function DocumentClient({
             </div>
 
             {/* Image Description */}
-            <p className="text-center text-gray-700 mt-4">
+            <p className="text-left text-gray-700 mt-4">
               {images[currentImageIndex].description}
             </p>
 

@@ -1,9 +1,9 @@
-// components/pdf/PdfLayout.tsx
 "use client";
 
 import React, { useState } from "react";
 import PdfAppInfo from "@/components/pdf/PdfAppInfo";
 import UploadDialog from "./UploadDialog";
+import UploadAndTriggerDialog from "@/components/pdf/UploadAndTriggerDialog"; // New Component
 import YourFiles from "./YourFiles";
 import SearchPatentFiles from "./SearchPatentFiles"; // New component
 import { useRouter } from "next/navigation";
@@ -31,9 +31,10 @@ interface DocumentType {
 }
 
 const sidebarOptions = [
-  "Patents",
+  "My Patents",
   "Search Patent",
-  "Upload Patent"
+  "Upload Patent",
+  "Upload & Trigger Pipeline" // New Sidebar Option
   // Add more options as needed
 ];
 
@@ -51,7 +52,7 @@ export default function PdfLayout({
 
   // Sidebar state
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
-  const [selectedOption, setSelectedOption] = useState<string>("Your Portfolio Patents");
+  const [selectedOption, setSelectedOption] = useState<string>("My Patents");
 
   const handleUpload = async (url: string | null, id: string | null) => {
     setStatus("Adding document...");
@@ -172,7 +173,16 @@ export default function PdfLayout({
             )}*/}
           </>
         );
-      case "Patents":
+      case "Upload & Trigger Pipeline":
+        return (
+          <>
+            <div className="mt-4 flex justify-center">
+              <UploadAndTriggerDialog />
+            </div>
+            {/* Add any additional components or information if needed */}
+          </>
+        );
+      case "My Patents":
         return documents && documents.length > 0 ? (
           <YourFiles documents={documents} />
         ) : (
