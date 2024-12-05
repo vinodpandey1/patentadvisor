@@ -99,6 +99,15 @@ class PatentAdvisorPipeLine:
                 f.write(pdf_content)
                 logger.info(f"Downloaded PDF in local : {pdf_download_path}")
 
+            url = self.bucket_url + "/" + self.upload_dir_prefix + pdf_file_name
+            self.supabase.table(const.DOC_COLLECTION).insert({
+                "document_id": pdf_file_name_without_ext,
+                "file_name": pdf_file_name,
+                "user_id": "7ec222c4-3bb2-418b-baf7-bf1b559a2a04",
+                "file_url": url
+            }).execute()
+            logger.info(f"Inserted into documents collection  {pdf_file_name_without_ext} and {url}")
+
             documentProcessor = DocumentProcessor(pdf_download_path, pdf_file_name, pdf_file_name_without_ext,
                                                   self.supabase)
             uuid = utils.get_document_uuid(self.supabase, pdf_file_name_without_ext)
