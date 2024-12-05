@@ -195,7 +195,6 @@ def trigger_pipeline_for_pdf(patentID: str):
 
 @app.get("/patent/query/{userId}/{patentID}")
 def invoke_questions_answer_using_agent(userId: str, patentID: str, query: str):
-    llm = ChatOpenAI(model="gpt-4", temperature=0)
     new_query = query + "? patentID is " + patentID + " and userId is " + userId
     logger.info(f"Invoked by for {patentID} a query - {new_query}")
     # Create the agent with the tool

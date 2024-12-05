@@ -87,10 +87,13 @@ def get_images_of_patent(userId: str, patentID: str, new_query: str):
     res = requests.get(url)
     if res.status_code == 200:
         data = res.json()
-        for item in data:
-            file_name = item.get('file_name')
-            if "png" in file_name:
-                return bucket_url + "/image/" + patentID + "/" + file_name
+        if data is not None:
+            for item in data:
+                file_name = item.get('file_name')
+                if "png" in file_name:
+                    return bucket_url + "/image/" + patentID + "/" + file_name
+        else:
+            return "No image present in system"
         return res  # Process and return the API response
     else:
         return f"Error: {res.status_code} - {res.text}"
