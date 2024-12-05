@@ -45,7 +45,7 @@ export default async function Page({ params }: { params: { id: string } }) {
     return <div>This document was not found</div>;
   }
 
-  let initialMessages = [];
+  let initialMessages: any[] = [];
   if (currentDoc.conversation_id) {
     const { data, error } = await supabase
       .from("conversations")

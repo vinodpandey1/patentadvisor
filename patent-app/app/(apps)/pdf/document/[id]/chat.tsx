@@ -2,8 +2,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
-import ChatWelcome from "@/components/chat/ChatWelcome";
+import React, { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/button";
@@ -20,6 +19,13 @@ import "swiper/css/pagination";
 // Swiper modules
 import { Navigation, Pagination, A11y } from "swiper/modules";
 
+// Import the AgenticChatWindow component
+import AgenticChatWindow from "@/components/chat/AgenticChatWindow";
+
+// Import existing components and utilities
+import { DocumentType } from "@/lib/types";
+import { getPolarityLabel, getSubjectivityLabel } from "@/lib/utils/sentiment";
+
 interface ImageData {
   src: string;
   alt: string;
@@ -27,19 +33,30 @@ interface ImageData {
 }
 
 interface ChatProps {
-  currentDoc: any;
-  initialMessages: any[];
+  currentDoc: DocumentType;
+  initialPythonMessages: ChatMessage[];
+  initialAgenticMessages: ChatMessage[];
   userId: string;
   documentId: string;
 }
 
+interface ChatMessage {
+  role: "human" | "ai";
+  content: string;
+  sentiment?: {
+    polarity: number;
+    subjectivity: number;
+  };
+}
+
 export default function DocumentClient({
   currentDoc,
-  initialMessages,
+  initialPythonMessages,
+  initialAgenticMessages,
   userId,
   documentId,
 }: ChatProps) {
-  const pdfUrl = currentDoc.file_url;
+  const pdfUrl = currentDoc.file_url; // Ensure 'file_url' is the correct field for the PDF URL
 
   // Helper function to remove file extension
   const removeFileExtension = (filename: string): string => {
@@ -55,6 +72,9 @@ export default function DocumentClient({
   // State to toggle Image Gallery display
   const [showImages, setShowImages] = useState(true);
 
+  // State to toggle Agentic Chatbot display
+  const [showAgenticChat, setShowAgenticChat] = useState(false);
+
   // State for Image Gallery Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState<number | null>(null);
@@ -64,14 +84,16 @@ export default function DocumentClient({
   const [imagesLoading, setImagesLoading] = useState<boolean>(false);
   const [imagesError, setImagesError] = useState<string | null>(null);
 
-  // Fetch images from the new API route using patentId
+  // Fetch images from the API route using patentId
   useEffect(() => {
     const fetchImages = async () => {
       setImagesLoading(true);
       setImagesError(null);
 
       try {
-        const response = await fetch(`/api/pdf/patentImages?patentId=${encodeURIComponent(patentId)}`);
+        const response = await fetch(
+          `/api/pdf/patentImages?patentId=${encodeURIComponent(patentId)}`
+        );
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || "Failed to fetch patent images.");
@@ -88,7 +110,9 @@ export default function DocumentClient({
         }
       } catch (error: any) {
         console.error("Error fetching patent images:", error);
-        setImagesError(error.message || "An error occurred while fetching patent images.");
+        setImagesError(
+          error.message || "An error occurred while fetching patent images."
+        );
       } finally {
         setImagesLoading(false);
       }
@@ -157,8 +181,13 @@ export default function DocumentClient({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isModalOpen, currentImageIndex, images.length]);
 
-  // Consolidated Messages State
-  const [messages, setMessages] = useState<any[]>([]);
+  // Separate Messages States for Python and Agentic Chatbots
+  const [pythonMessages, setPythonMessages] = useState<ChatMessage[]>(
+    initialPythonMessages || []
+  );
+  const [agenticMessages, setAgenticMessages] = useState<ChatMessage[]>(
+    initialAgenticMessages || []
+  );
   const [isHistoryLoading, setIsHistoryLoading] = useState<boolean>(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
 
@@ -166,60 +195,33 @@ export default function DocumentClient({
   const [pythonQuery, setPythonQuery] = useState<string>("");
   const [pythonIsLoading, setPythonIsLoading] = useState<boolean>(false);
 
-  // Helper functions to determine labels and colors based on sentiment values
-  const getPolarityLabel = (polarity: number): { label: string; color: string } => {
-    if (polarity > 0.1) return { label: "Positive", color: "bg-green-200 text-green-800" };
-    if (polarity < -0.1) return { label: "Negative", color: "bg-red-200 text-red-800" };
-    return { label: "Neutral", color: "bg-gray-200 text-gray-800" };
-  };
+  // State for Agentic Chat API
+  const [agenticIsLoading, setAgenticIsLoading] = useState<boolean>(false); // Added state
 
-  const getSubjectivityLabel = (subjectivity: number): { label: string; color: string } => {
-    if (subjectivity > 0.5) return { label: "Subjective", color: "bg-yellow-200 text-yellow-800" };
-    return { label: "Objective", color: "bg-blue-200 text-blue-800" };
-  };
+  // Function to store a new message
+  const storeMessage = async (message: ChatMessage) => {
+    try {
+      const response = await fetch("/api/pdf/storeMessage", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          documentId,
+          role: message.role,
+          content: message.content,
+          sentiment: message.sentiment,
+        }),
+      });
 
-  // Fetch Chat History on Component Mount
-  useEffect(() => {
-    const fetchChatHistory = async () => {
-      setIsHistoryLoading(true);
-      setHistoryError(null);
-
-      try {
-        const response = await fetch(
-          `/api/pdf/getHistory/${encodeURIComponent(userId)}/${encodeURIComponent(documentId)}`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to fetch chat history.");
-        }
-
-        const data = await response.json();
-
-        if (data.history && Array.isArray(data.history)) {
-          setMessages(data.history);
-        } else {
-          setHistoryError("Invalid chat history format received.");
-        }
-      } catch (error: any) {
-        console.error("Error fetching chat history:", error);
-        setHistoryError(error.message || "An error occurred while fetching chat history.");
-      } finally {
-        setIsHistoryLoading(false);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error storing message:", errorData.error);
       }
-    };
-
-    // Fetch history only if userId and documentId are valid
-    if (userId && documentId) {
-      fetchChatHistory();
+    } catch (error) {
+      console.error("Error storing message:", error);
     }
-  }, [userId, documentId]);
+  };
 
   // Handler to send queries to the Python Chat API
   const handlePythonSend = async () => {
@@ -228,9 +230,10 @@ export default function DocumentClient({
       return;
     }
 
-    // Add the human message to messages using functional update
-    const newHumanMessage = { role: "human", content: pythonQuery };
-    setMessages((prevMessages) => [...prevMessages, newHumanMessage]);
+    // Add the human message to pythonMessages and store it
+    const newHumanMessage: ChatMessage = { role: "human", content: pythonQuery };
+    setPythonMessages((prevMessages) => [...prevMessages, newHumanMessage]);
+    await storeMessage(newHumanMessage);
 
     setPythonIsLoading(true);
 
@@ -241,7 +244,7 @@ export default function DocumentClient({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          documentId: documentId, // Use the passed documentId
+          documentId: documentId,
           query: pythonQuery,
         }),
       });
@@ -256,13 +259,8 @@ export default function DocumentClient({
       const data = await response.json();
 
       // Check if 'answer' and 'bias.sentiment' exist and are valid
-      if (
-        data.answer &&
-        typeof data.answer === "string" &&
-        data.bias &&
-        data.bias.sentiment
-      ) {
-        const newAiMessage = {
+      if (data.answer && typeof data.answer === "string" && data.bias?.sentiment) {
+        const newAiMessage: ChatMessage = {
           role: "ai",
           content: data.answer,
           sentiment: {
@@ -270,7 +268,8 @@ export default function DocumentClient({
             subjectivity: data.bias.sentiment.subjectivity,
           },
         };
-        setMessages((prevMessages) => [...prevMessages, newAiMessage]);
+        setPythonMessages((prevMessages) => [...prevMessages, newAiMessage]);
+        await storeMessage(newAiMessage);
       } else {
         console.warn("Incomplete data received from Python Chat API:", data);
         alert("Received incomplete data from the Python Chat API.");
@@ -284,9 +283,67 @@ export default function DocumentClient({
     }
   };
 
+  // Handler to send queries to the Agentic Chat API
+  const handleAgenticSend = async (query: string) => {
+    if (!query.trim()) {
+      alert("Please enter a query for the Agentic Chatbot.");
+      return;
+    }
+
+    // Add the human message to agenticMessages and store it
+    const newHumanMessage: ChatMessage = { role: "human", content: query };
+    setAgenticMessages((prevMessages) => [...prevMessages, newHumanMessage]);
+    await storeMessage(newHumanMessage);
+
+    setAgenticIsLoading(true); // Start loading
+
+    try {
+      // Construct the Agentic Chat API URL via the proxy
+      const agenticApiUrl = `/api/pdf/agenticChat?userId=${encodeURIComponent(
+        userId
+      )}&patentId=${encodeURIComponent(patentId)}&query=${encodeURIComponent(query)}`;
+
+      const response = await fetch(agenticApiUrl, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Agentic Chat API Error:", errorText);
+        alert(`Failed to get response from Agentic Chat API: ${errorText}`);
+        return;
+      }
+
+      const data = await response.json();
+
+      // Assuming the API returns an object with an 'answer' field
+      if (data.answer && typeof data.answer === "string") {
+        const newAiMessage: ChatMessage = {
+          role: "ai",
+          content: data.answer,
+          // If sentiment data is available, include it. Otherwise, omit.
+          // sentiment: data.sentiment, // Uncomment if sentiment is provided
+        };
+        setAgenticMessages((prevMessages) => [...prevMessages, newAiMessage]);
+        await storeMessage(newAiMessage);
+      } else {
+        console.warn("Incomplete data received from Agentic Chat API:", data);
+        alert("Received incomplete data from the Agentic Chat API.");
+      }
+    } catch (error) {
+      console.error("Error communicating with Agentic Chat API:", error);
+      alert("An error occurred while communicating with the Agentic Chat API.");
+    } finally {
+      setAgenticIsLoading(false); // End loading
+    }
+  };
+
   return (
     <div className="bg-white min-h-screen">
-      {/* Toggle Switches for PDF and Image Gallery Display */}
+      {/* Toggle Switches for PDF, Image Gallery, and Agentic Chatbot */}
       <div className="mb-8 flex justify-center items-center space-x-8 px-4">
         {/* Toggle for PDF Display */}
         <div className="flex items-center space-x-2">
@@ -315,6 +372,21 @@ export default function DocumentClient({
             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
           >
             Show Document Images
+          </label>
+        </div>
+
+        {/* Toggle for Agentic Chatbot Display */}
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="show_agentic_chat"
+            checked={showAgenticChat}
+            onCheckedChange={(checked) => setShowAgenticChat(checked === true)}
+          />
+          <label
+            htmlFor="show_agentic_chat"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Show Agentic Chatbot
           </label>
         </div>
       </div>
@@ -390,93 +462,92 @@ export default function DocumentClient({
           showPdf ? "lg:grid-cols-2" : "grid-cols-1"
         }`}
       >
-        {/* Existing Chat Window - Commented Out */}
-        {/*
-        <div className="h-[90vh] overflow-hidden rounded-lg shadow-md">
-          <ChatWindow
-            endpoint="/api/pdf/chat"
-            placeholder="Ask me anything about the document..."
-            emptyStateComponent={<ChatWelcome />}
-            chatId={currentDoc.conversation_id}
-            initialMessages={initialMessages}
-            documentId={documentId}
-          />
-        </div>
-        */}
+        {/* Python Chat API Section */}
+        {!showAgenticChat && (
+          <div className="h-[90vh] overflow-hidden rounded-lg shadow-md">
+            <div className="flex flex-col h-full">
+              {/* Chat Header */}
+              <div className="p-4 bg-gray-100 border-b border-gray-300">
+                <h2 className="text-xl font-semibold">Chat with Patent Document</h2>
+              </div>
 
-        {/* New Python Chat API Section */}
-        <div className="h-[90vh] overflow-hidden rounded-lg shadow-md">
-          <div className="flex flex-col h-full">
-            {/* Chat Header */}
-            <div className="p-4 bg-gray-100 border-b border-gray-300">
-              <h2 className="text-xl font-semibold">Chat with Patent Document</h2>
-            </div>
-
-            {/* Chat Messages */}
-            <div className="flex-1 p-4 overflow-y-auto bg-gray-50">
-              {/* Display Chat History */}
-              {isHistoryLoading && <p>Loading chat history...</p>}
-              {historyError && <p className="text-red-500">Error: {historyError}</p>}
-              {!isHistoryLoading && !historyError && messages.length > 0 && (
-                messages.map((msg, index) => (
-                  <div
-                    key={index}
-                    className={`mb-4 flex ${
-                      msg.role === "human" ? "justify-end" : "justify-start"
-                    }`}
-                  >
+              {/* Chat Messages */}
+              <div className="flex-1 p-4 overflow-y-auto bg-gray-50">
+                {/* Display Chat History */}
+                {isHistoryLoading && <p>Loading chat history...</p>}
+                {historyError && <p className="text-red-500">Error: {historyError}</p>}
+                {!isHistoryLoading && !historyError && pythonMessages.length > 0 && (
+                  pythonMessages.map((msg, index) => (
                     <div
-                      className={`${
-                        msg.role === "human" ? "bg-blue-500 text-white" : "bg-gray-300 text-black"
-                      } rounded-lg p-2 max-w-xs`}
+                      key={index}
+                      className={`mb-4 flex ${
+                        msg.role === "human" ? "justify-end" : "justify-start"
+                      }`}
                     >
-                      {msg.content}
-                      
-                      {/* Display sentiment data for AI messages */}
-                      {msg.role === "ai" && msg.sentiment && (
-                        <div className="mt-2 text-sm">
-                          <span
-                            className={`inline-block px-2 py-1 rounded mr-2 ${getPolarityLabel(msg.sentiment.polarity).color}`}
-                          >
-                            Polarity: {getPolarityLabel(msg.sentiment.polarity).label} ({msg.sentiment.polarity.toFixed(2)})
-                          </span>
-                          <span
-                            className={`inline-block px-2 py-1 rounded ${getSubjectivityLabel(msg.sentiment.subjectivity).color}`}
-                          >
-                            Subjectivity: {getSubjectivityLabel(msg.sentiment.subjectivity).label} ({msg.sentiment.subjectivity.toFixed(2)})
-                          </span>
-                        </div>
-                      )}
+                      <div
+                        className={`${
+                          msg.role === "human" ? "bg-blue-500 text-white" : "bg-gray-300 text-black"
+                        } rounded-lg p-2 max-w-xs`}
+                      >
+                        {msg.content}
+                        
+                        {/* Display sentiment data for AI messages */}
+                        {msg.role === "ai" && msg.sentiment && (
+                          <div className="mt-2 text-sm">
+                            <span
+                              className={`inline-block px-2 py-1 rounded mr-2 ${getPolarityLabel(msg.sentiment.polarity).color}`}
+                            >
+                              Polarity: {getPolarityLabel(msg.sentiment.polarity).label} ({msg.sentiment.polarity.toFixed(2)})
+                            </span>
+                            <span
+                              className={`inline-block px-2 py-1 rounded ${getSubjectivityLabel(msg.sentiment.subjectivity).color}`}
+                            >
+                              Subjectivity: {getSubjectivityLabel(msg.sentiment.subjectivity).label} ({msg.sentiment.subjectivity.toFixed(2)})
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
 
-              {/* No Chat History */}
-              {!isHistoryLoading && !historyError && messages.length === 0 && (
-                <p className="text-center text-gray-700">No chat history available.</p>
-              )}
-            </div>
+                {/* No Chat History */}
+                {!isHistoryLoading && !historyError && pythonMessages.length === 0 && (
+                  <p className="text-center text-gray-700">No chat history available.</p>
+                )}
+              </div>
 
-            {/* Chat Input */}
-            <div className="p-4 bg-white flex items-center space-x-2">
-              <input
-                type="text"
-                value={pythonQuery}
-                onChange={(e) => setPythonQuery(e.target.value)}
-                placeholder="Start Q&A With this patent document..."
-                className="flex-1 border border-gray-300 rounded p-2"
-              />
-              <Button
-                onClick={handlePythonSend}
-                disabled={pythonIsLoading}
-                className="bg-green-500 text-white px-4 py-2 rounded"
-              >
-                {pythonIsLoading ? "Sending..." : "Ask"}
-              </Button>
+              {/* Chat Input */}
+              <div className="p-4 bg-white flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={pythonQuery}
+                  onChange={(e) => setPythonQuery(e.target.value)}
+                  placeholder="Start Q&A With this patent document..."
+                  className="flex-1 border border-gray-300 rounded p-2"
+                />
+                <Button
+                  onClick={handlePythonSend}
+                  disabled={pythonIsLoading}
+                  className="bg-green-500 text-white px-4 py-2 rounded"
+                >
+                  {pythonIsLoading ? "Sending..." : "Ask"}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Agentic Chatbot Section */}
+        {showAgenticChat && (
+          <AgenticChatWindow
+            patentId={patentId}
+            userId={userId}
+            handleAgenticSend={handleAgenticSend}
+            messages={agenticMessages}
+            isLoading={agenticIsLoading}
+          />
+        )}
 
         {/* PDF Viewer */}
         {showPdf && (
@@ -531,13 +602,13 @@ export default function DocumentClient({
             {/* Close Button */}
             <Button
               onClick={closeModal}
-              className="mt-4 bg-[oklch(0.8_0.15_200.66)] text-white hover:bg-[oklch(0.7_0.15_200.66)]"
+              className="mt-4 bg-green-500 text-white hover:bg-green-600"
             >
               Close
             </Button>
           </div>
         )}
       </Modal>
-    </div>
+  </div>
   );
 }
