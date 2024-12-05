@@ -198,7 +198,15 @@ export default function DocumentClient({
   // State for Agentic Chat API
   const [agenticIsLoading, setAgenticIsLoading] = useState<boolean>(false); // Added state
 
-  // Function to store a new message
+  /**
+   * Function to store a new message.
+   *
+   * **Functionality:**
+   * - Sends a POST request to `/api/pdf/storeMessage` with the message details.
+   * - Logs any errors encountered during the request.
+   *
+   * @param {ChatMessage} message - The chat message to store.
+   */
   const storeMessage = async (message: ChatMessage) => {
     try {
       const response = await fetch("/api/pdf/storeMessage", {
@@ -223,7 +231,15 @@ export default function DocumentClient({
     }
   };
 
-  // Handler to send queries to the Python Chat API
+  /**
+   * Handler to send queries to the Python Chat API.
+   *
+   * **Functionality:**
+   * - Validates the user query.
+   * - Adds the user's message to `pythonMessages` and stores it.
+   * - Sends the query to the Python Chat API.
+   * - Processes the response and adds the AI's message to `pythonMessages` and stores it.
+   */
   const handlePythonSend = async () => {
     if (!pythonQuery.trim()) {
       alert("Please enter a query for the Python Chat API.");
@@ -283,7 +299,18 @@ export default function DocumentClient({
     }
   };
 
-  // Handler to send queries to the Agentic Chat API
+  /**
+   * Handler to send queries to the Agentic Chat API.
+   *
+   * **Functionality:**
+   * - Validates the user query.
+   * - Adds the user's message to `agenticMessages` and stores it.
+   * - Sends the query to the Agentic Chat API.
+   * - Processes the response and adds the AI's message to `agenticMessages` and stores it.
+   * - Handles different response types (text, audio URL, image URL).
+   *
+   * @param {string} query - The user's query to send.
+   */
   const handleAgenticSend = async (query: string) => {
     if (!query.trim()) {
       alert("Please enter a query for the Agentic Chatbot.");
@@ -609,6 +636,6 @@ export default function DocumentClient({
           </div>
         )}
       </Modal>
-  </div>
+    </div>
   );
 }

@@ -11,7 +11,7 @@ import { createClient } from "@/lib/utils/supabase/server";
  * - Extracts user ID, patent ID, and query from query parameters.
  * - Validates the input.
  * - Forwards the request to the Agentic Chatbot API.
- * - Returns the response back to the frontend.
+ * - Returns the response back to the frontend in a consistent JSON format.
  *
  * @param {NextRequest} req - Incoming request object.
  * @returns {Promise<NextResponse>} - JSON response with Agentic Chatbot data or error messages.
@@ -70,9 +70,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const data = await agenticResponse.json();
+    // Handle plain text response
+    const answer = await agenticResponse.text();
 
-    return NextResponse.json(data, { status: 200 });
+    return NextResponse.json({ answer }, { status: 200 });
   } catch (error: any) {
     console.error("Agentic Chatbot Proxy Route Error:", error);
     return NextResponse.json(
