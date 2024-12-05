@@ -62,29 +62,54 @@ const AgenticChatWindow: React.FC<AgenticChatWindowProps> = ({
   };
 
   /**
-   * Renders the content based on its type.
+   * Parses the message content to identify URLs and their types.
    *
    * @param {string} content - The message content.
-   * @returns {JSX.Element} - The rendered content.
+   * @returns {Array<{ type: string; content: string }>} - An array of content segments with their types.
    */
-  const renderContent = (content: string): JSX.Element => {
-    const contentType = determineContentType(content);
+  const parseMessageContent = (content: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = content.split(urlRegex);
 
-    switch (contentType) {
-      case "audio":
-        return (
-          <audio controls className="w-full mt-2">
-            <source src={content} type="audio/mpeg" />
-            Your browser does not support the audio element.
-          </audio>
-        );
-      case "image":
-        return (
-          <img src={content} alt="Agentic Chatbot Response" className="w-full h-auto mt-2 rounded" />
-        );
-      default:
-        return <p className="mt-2">{content}</p>;
-    }
+    return parts.map((part, index) => {
+      if (urlRegex.test(part)) {
+        const type = determineContentType(part);
+        return { type, content: part, key: index };
+      }
+      return { type: "text", content: part, key: index };
+    });
+  };
+
+  /**
+   * Renders the content based on its type.
+   *
+   * @param {Array<{ type: string; content: string; key: number }>} parsedContent - The parsed content segments.
+   * @returns {JSX.Element[]} - An array of JSX elements.
+   */
+  const renderContent = (parsedContent: Array<{ type: string; content: string; key: number }>): JSX.Element[] => {
+    return parsedContent.map((segment) => {
+      switch (segment.type) {
+        case "audio":
+          return (
+            <audio controls className="w-full mt-2" key={segment.key}>
+              <source src={segment.content} type="audio/mpeg" />
+              Your browser does not support the audio element.
+            </audio>
+          );
+        case "image":
+          return (
+            <img
+              src={segment.content}
+              alt="Agentic Chatbot Response"
+              className="w-full h-auto mt-2 rounded"
+              key={segment.key}
+            />
+          );
+        case "text":
+        default:
+          return <span key={segment.key}>{segment.content}</span>;
+      }
+    });
   };
 
   /**
@@ -123,7 +148,7 @@ const AgenticChatWindow: React.FC<AgenticChatWindowProps> = ({
                   } rounded-lg p-2 max-w-xs`}
                 >
                   {msg.role === "ai" ? (
-                    renderContent(msg.content)
+                    renderContent(parseMessageContent(msg.content))
                   ) : (
                     msg.content
                   )}
