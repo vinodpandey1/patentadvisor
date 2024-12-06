@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Construct the Python API URL
-    const pythonApiUrl = `http://127.0.0.1:8000/patent/trigger/${encodeURIComponent(
+    const pythonApiUrl = `${process.env.NEXT_PUBLIC_API_URL}/patent/trigger/${encodeURIComponent(
       patentId
     )}`;
 
