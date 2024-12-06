@@ -85,9 +85,9 @@ class PatentAdvisorPipeLine:
         pdf_files = [obj['Key'] for obj in response['Contents'] if obj['Key'].lower().endswith('.pdf')]
         logger.info(f"Found {len(pdf_files)} PDF files in bucket.")
         for pdf_key in pdf_files:
-            self.trigger_pipeline_for_pdf(pdf_key, pipeline_type)
+            self.trigger_pipeline_for_pdf(pdf_key, pipeline_type, self.user_id)
 
-    def trigger_pipeline_for_pdf(self, pdf_key, pipeline_type):
+    def trigger_pipeline_for_pdf(self, pdf_key, pipeline_type, userId):
         try:
             logger.info(f"Downloading PDF: {pdf_key}")
             pdf_file = self.s3_client.get_object(Bucket=self.bucket_name, Key=pdf_key)
@@ -104,7 +104,7 @@ class PatentAdvisorPipeLine:
             self.supabase.table(const.DOC_COLLECTION).insert({
                 "document_id": pdf_file_name_without_ext,
                 "file_name": pdf_file_name,
-                "user_id": self.user_id,
+                "user_id": userId,
                 "file_url": url
             }).execute()
             logger.info(f"Inserted into documents collection  {pdf_file_name_without_ext} and {url}")

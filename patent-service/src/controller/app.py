@@ -185,12 +185,12 @@ def getConversationHistory(userid: str, documentId: str):
         return Response(content="Internal Error", status_code=500)
 
 
-@app.post("/patent/trigger/{patentID}")
-def trigger_pipeline_for_pdf(patentID: str):
+@app.post("/patent/trigger/{userId}/{patentID}")
+def trigger_pipeline_for_pdf(userId: str, patentID: str):
     pipeline = PatentAdvisorPipeLine()
     key = upload_dir_prefix + patentID + ".pdf"
     logger.info(f"Triggering pipeline for pdf {key}")
-    pipeline.trigger_pipeline_for_pdf(pdf_key=key, pipeline_type="all")
+    pipeline.trigger_pipeline_for_pdf(pdf_key=key, pipeline_type="all", userId=userId)
 
 
 @app.get("/patent/query/{userId}/{patentID}")
