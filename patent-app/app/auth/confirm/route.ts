@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   console.log("Code:", code);
   console.log("Next:", next);
 
-  const origin = process.env.PRODUCTION_URL || "http://localhost:3000";
+  const origin = process.env.NEXT_PUBLIC_APP_PRODUCTION_URL || "http://localhost:3000";
   console.log("Origin:", origin);
 
   if (code) {
