@@ -100,6 +100,9 @@ class PatentAdvisorPipeLine:
                 f.write(pdf_content)
                 logger.info(f"Downloaded PDF in local : {pdf_download_path}")
 
+            if userId is None or userId == "":
+                userId = self.user_id
+
             url = self.bucket_url + "/" + self.upload_dir_prefix + pdf_file_name
             self.supabase.table(const.DOC_COLLECTION).insert({
                 "document_id": pdf_file_name_without_ext,
