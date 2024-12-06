@@ -82,7 +82,7 @@ const UploadAndTriggerDialog: React.FC = () => {
 
   // Handle trigger pipeline
   const handleTriggerPipeline = async (patentId: string) => {
-    const triggerApiUrl = `http://127.0.0.1:5001/patent/trigger/${encodeURIComponent(patentId)}`;
+    const triggerApiUrl = `${process.env.NEXT_PUBLIC_API_URL}/patent/trigger/${encodeURIComponent(patentId)}`;
 
     const res = await fetch(triggerApiUrl, {
       method: "POST",

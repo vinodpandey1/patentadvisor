@@ -8,13 +8,32 @@ from fastapi import FastAPI, Response
 
 from langchain.agents import initialize_agent, AgentType
 from langchain.llms import OpenAI
+from langchain_core.prompts import PromptTemplate
+from langchain_openai import ChatOpenAI
 
 from src.controller.agent import get_ai_patent_advisor_agent, evaluate_response, get_fallback_agent
 from src.service.document import searchDocumentService
 from src.service.pipeline import PatentAdvisorPipeLine
 from src.utils import logger
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI()
+
+origins = [
+    "http://localhost",
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 load_dotenv()
 access_key = os.getenv('CLOUDFLARE_R2_ACCESS_KEY')
 secret_key = os.getenv('CLOUDFLARE_R2_SECRET_KEY')
@@ -56,7 +75,7 @@ def get_patent_summary(patentID: str):
 def get_patent_audio(patentID: str):
     file_url = bucket_url + "/" + audio_dir_prefix + patentID + ".mp3"
     logger.info(f"Got audio for {patentID} = {file_url}")
-    #return Response(content=file_url, media_type="audio/mpeg")
+    # return Response(content=file_url, media_type="audio/mpeg")
     return Response(content=file_url, media_type="text/plain")
 
 
@@ -64,7 +83,7 @@ def get_patent_audio(patentID: str):
 def get_patent_podcast(patentID: str):
     file_url = bucket_url + "/" + podcast_dir_prefix + patentID + ".wav"
     logger.info(f"Got podcast for {patentID} = {file_url}")
-    #return Response(content=file_url, media_type="audio/mpeg")
+    # return Response(content=file_url, media_type="audio/mpeg")
     return Response(content=file_url, media_type="text/plain")
 
 
@@ -103,15 +122,15 @@ def get_patent_images(patentID: str):
 @app.get('/searchPatent')
 def search(query: str):
     try:
-        
-        documentList = searchDocumentService.searchDocument(query)     
-        
+
+        documentList = searchDocumentService.searchDocument(query)
+
         # if not documentList or len(documentList) == 0:
         #     return Response(content="No data found", status_code=404)
-          
+
         if not documentList:
             return {"patentList": []}
-        
+
         for document in documentList:
             filename = document.get('filename', '')
             patentID = filename.split('.')[0]
@@ -123,47 +142,48 @@ def search(query: str):
             document['podcast_url'] = podcast_url
             document['audio_url'] = audio_url
             document['summary'] = file_content.decode('utf-8')
-            
 
         patent_list_json = json.dumps(documentList, indent=4)
         response = {"patentList": json.loads(patent_list_json)}
-        
+
         return response
     except Exception as e:
-        logger.error(f"Error in searchDocument: {str(e)}") 
-        return Response(content="Internal Error", status_code=500) 
-    
+        logger.error(f"Error in searchDocument: {str(e)}")
+        return Response(content="Internal Error", status_code=500)
+
 
 @app.get("/queryDocument/{userid}/{documentId}")
-def searchDocument(query: str, userid:str, documentId: str):  
+def searchDocument(query: str, userid: str, documentId: str):
     try:
         logger.info(f"Calling Search Document API {userid} {documentId}")
-        llm_response , history_dict, bias_analyzer = searchDocumentService.queryDocument(query, userid,documentId)
-        response = {"answer": llm_response, "history": history_dict, "bias": bias_analyzer, "documentId":documentId}        
+        llm_response, history_dict, bias_analyzer = searchDocumentService.queryDocument(query, userid, documentId)
+        response = {"answer": llm_response, "history": history_dict, "bias": bias_analyzer, "documentId": documentId}
         response_json = json.dumps(response, indent=4)
         response = json.loads(response_json)
         # logger.info(f"Search results JSON Response :{response}")
         return response
-        
+
     except Exception as e:
-        logger.error(f"Error in searchDocument: {str(e)}") 
-        return Response(content="Internal Error", status_code=500) 
+        logger.error(f"Error in searchDocument: {str(e)}")
+        return Response(content="Internal Error", status_code=500)
+
 
 @app.get("/gethistory/{userid}/{documentId}")
-def getConversationHistory( userid:str, documentId: str):  
+def getConversationHistory(userid: str, documentId: str):
     try:
         logger.info(f"Calling getConversationHistory API {userid} {documentId}")
-        history_dict = searchDocumentService.getConversationHistory(userid,documentId)
-        
-        response = {"history": history_dict, "documentId":documentId}        
+        history_dict = searchDocumentService.getConversationHistory(userid, documentId)
+
+        response = {"history": history_dict, "documentId": documentId}
         response_json = json.dumps(response, indent=4)
         response = json.loads(response_json)
         # logger.info(f"Search results JSON Response :{response}")
         return response
-        
+
     except Exception as e:
-        logger.error(f"Error in getConversationHistory: {str(e)}") 
-        return Response(content="Internal Error", status_code=500) 
+        logger.error(f"Error in getConversationHistory: {str(e)}")
+        return Response(content="Internal Error", status_code=500)
+
 
 @app.post("/patent/trigger/{patentID}")
 def trigger_pipeline_for_pdf(patentID: str):
@@ -175,31 +195,32 @@ def trigger_pipeline_for_pdf(patentID: str):
 
 @app.get("/patent/query/{userId}/{patentID}")
 def invoke_questions_answer_using_agent(userId: str, patentID: str, query: str):
-    llm = OpenAI(temperature=0)
-    new_query = query + ". patentID is " + patentID + " and userId is " + userId
+    new_query = query + "? patentID is " + patentID + " and userId is " + userId
     logger.info(f"Invoked by for {patentID} a query - {new_query}")
     # Create the agent with the tool
     try:
         agent = get_ai_patent_advisor_agent()
         response = agent.run(new_query)
-
         if evaluate_response(response):
-            logger.info("response returned from ai patent advisor is sufficient")
-            return response
+            logger.info(f"response returned from ai patent advisor is sufficient - {response}")
+            media_asset = ["png", "mp3", "wav"]
+            if any(word in response for word in media_asset):
+                return response
+            else:
+                return "Response from AI Patent Advisor : " + response
         else:
             logger.info("response returned from ai patent advisor is not sufficient, hence fall backing to internet "
                         "using fallback agent")
             agent = get_fallback_agent()
             response = agent.run(query)
-            return response
+            return "Response from Fallback Agent (Google) : " + response
     except Exception as e:
         print(e)
         raise e
 
 
 if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=5001)
 
-    uvicorn.run(app, host="0.0.0.0",port=5001)
-    
 # task = Task.init(project_name = "patentsearch", task_name = "documentsearch") 
 
