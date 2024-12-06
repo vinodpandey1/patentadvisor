@@ -14,7 +14,7 @@ import { createClient } from "@/lib/utils/supabase/server";
  * - Returns a success or error response based on the Pipeline API's response.
  *
  * **API Details:**
- * - URL: http://127.0.0.1:5001/patent/trigger/{{userId}}/{{patentId}}
+ * - URL: ${process.env.NEXT_PUBLIC_API_URL}/patent/trigger/{{userId}}/{{patentId}}
  * - Method: POST
  * - Response: 200 OK on success; error message otherwise.
  *
