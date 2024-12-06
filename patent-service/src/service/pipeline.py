@@ -34,6 +34,7 @@ class PatentAdvisorPipeLine:
         self.podcast_dir_prefix = os.getenv('CLOUDFLARE_PODCAST_DIRECTORY_PREFIX')
         self.image_dir_prefix = os.getenv('CLOUDFLARE_IMAGE_DIRECTORY_PREFIX')
         self.patent_dir_prefix = os.getenv('CLOUDFLARE_PATENT_DIRECTORY_PREFIX')
+        self.user_id = os.getenv('UPLOAD_USER_ID')
         self.supabase = initialize_supabase()
 
         if not all([access_key, secret_key, self.bucket_name, endpoint_url]):
@@ -64,7 +65,7 @@ class PatentAdvisorPipeLine:
             self.supabase.table(const.DOC_COLLECTION).insert({
                 "document_id": file_name_without_ext,
                 "file_name": file_name,
-                "user_id": "7ec222c4-3bb2-418b-baf7-bf1b559a2a04",
+                "user_id": self.user_id,
                 "file_url": url
             }).execute()
             logger.info(f"Inserted into documents collection  {file_name_without_ext} and {url}")
@@ -103,7 +104,7 @@ class PatentAdvisorPipeLine:
             self.supabase.table(const.DOC_COLLECTION).insert({
                 "document_id": pdf_file_name_without_ext,
                 "file_name": pdf_file_name,
-                "user_id": "7ec222c4-3bb2-418b-baf7-bf1b559a2a04",
+                "user_id": self.user_id,
                 "file_url": url
             }).execute()
             logger.info(f"Inserted into documents collection  {pdf_file_name_without_ext} and {url}")
