@@ -1,5 +1,3 @@
-// components/pdf/UploadAndTriggerDialog.tsx
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -61,7 +59,7 @@ const UploadAndTriggerDialog: React.FC = () => {
   const handleUploadToCloudflare = async (): Promise<{ patentId: string; fileUrl: string }> => {
     if (!file) throw new Error("No file selected.");
 
-    const uploadApiUrl = "/api/pdf/uploadToUploadDirectory"; // New API route
+    const uploadApiUrl = "/api/pdf/uploadToUploadDirectory"; // Existing API route
 
     const formData = new FormData();
     formData.append("file", file);
@@ -80,24 +78,24 @@ const UploadAndTriggerDialog: React.FC = () => {
     return { patentId: data.patentId, fileUrl: data.url };
   };
 
-  // Handle trigger pipeline
+  // Handle trigger pipeline via the updated API route
   const handleTriggerPipeline = async (patentId: string) => {
-    const triggerApiUrl = `${process.env.NEXT_PUBLIC_API_URL}/patent/trigger/${encodeURIComponent(patentId)}`;
+    const triggerApiUrl = `/api/pdf/triggerPipeline`;
 
     const res = await fetch(triggerApiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      // No body as per API details
+      body: JSON.stringify({ patentId }),
     });
 
     if (res.status === 200) {
       setTriggerMessage("Pipeline triggered successfully.");
     } else {
-      // Since no JSON is returned, capture the status text or other info if available
-      const errorText = await res.text();
-      setTriggerError(`Pipeline API Error: ${errorText || res.statusText}`);
+      // Capture the error message from the API
+      const errorData = await res.json();
+      setTriggerError(`Pipeline API Error: ${errorData.error || res.statusText}`);
     }
   };
 

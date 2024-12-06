@@ -32,14 +32,6 @@ interface ImageData {
   description: string;
 }
 
-interface ChatMessage {
-  role: "human" | "ai";
-  content: string;
-  sentiment?: {
-    polarity: number;
-    subjectivity: number;
-  };
-}
 interface ChatProps {
   currentDoc: DocumentType;
   initialPythonMessages: ChatMessage[];
@@ -48,7 +40,14 @@ interface ChatProps {
   documentId: string;
 }
 
-
+interface ChatMessage {
+  role: "human" | "ai";
+  content: string;
+  sentiment?: {
+    polarity: number;
+    subjectivity: number;
+  };
+}
 
 export default function DocumentClient({
   currentDoc,
@@ -206,31 +205,7 @@ export default function DocumentClient({
    * - Sends a POST request to `/api/pdf/storeMessage` with the message details.
    * - Logs any errors encountered during the request.
    *
-   * @param {ChatMessage} message - The chat message to store.
-   */
-  const storeMessage = async (message: ChatMessage) => {
-    try {
-      const response = await fetch("/api/pdf/storeMessage", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          documentId,
-          role: message.role,
-          content: message.content,
-          sentiment: message.sentiment,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Error storing message:", errorData.error);
-      }
-    } catch (error) {
-      console.error("Error storing message:", error);
-    }
-  };
+   
 
   /**
    * Handler to send queries to the Python Chat API.
@@ -250,7 +225,7 @@ export default function DocumentClient({
     // Add the human message to pythonMessages and store it
     const newHumanMessage: ChatMessage = { role: "human", content: pythonQuery };
     setPythonMessages((prevMessages) => [...prevMessages, newHumanMessage]);
-    await storeMessage(newHumanMessage);
+    //await storeMessage(newHumanMessage);
 
     setPythonIsLoading(true);
 
@@ -286,7 +261,7 @@ export default function DocumentClient({
           },
         };
         setPythonMessages((prevMessages) => [...prevMessages, newAiMessage]);
-        await storeMessage(newAiMessage);
+        //await storeMessage(newAiMessage);
       } else {
         console.warn("Incomplete data received from Python Chat API:", data);
         alert("Received incomplete data from the Python Chat API.");
@@ -321,7 +296,7 @@ export default function DocumentClient({
     // Add the human message to agenticMessages and store it
     const newHumanMessage: ChatMessage = { role: "human", content: query };
     setAgenticMessages((prevMessages) => [...prevMessages, newHumanMessage]);
-    await storeMessage(newHumanMessage);
+    //await storeMessage(newHumanMessage);
 
     setAgenticIsLoading(true); // Start loading
 
@@ -356,7 +331,7 @@ export default function DocumentClient({
           // sentiment: data.sentiment, // Uncomment if sentiment is provided
         };
         setAgenticMessages((prevMessages) => [...prevMessages, newAiMessage]);
-        await storeMessage(newAiMessage);
+        //await storeMessage(newAiMessage);
       } else {
         console.warn("Incomplete data received from Agentic Chat API:", data);
         alert("Received incomplete data from the Agentic Chat API.");

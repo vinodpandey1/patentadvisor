@@ -9,13 +9,14 @@ import { createClient } from "@/lib/utils/supabase/server";
  * **Functionality:**
  * - Authenticates the user.
  * - Extracts patentId from the request body.
- * - Invokes the Python Pipeline API.
+ * - Retrieves userId from the authenticated session.
+ * - Invokes the Python Pipeline API with userId and patentId.
  * - Returns a success or error response based on the Pipeline API's response.
  *
  * **API Details:**
- * - URL: http://127.0.0.1:8000/patent/trigger/{{patentId}}
+ * - URL: http://127.0.0.1:5001/patent/trigger/{{userId}}/{{patentId}}
  * - Method: POST
- * - Response: 200 OK on success; no JSON response body.
+ * - Response: 200 OK on success; error message otherwise.
  *
  * @param {NextRequest} req - Incoming request object.
  * @returns {Promise<NextResponse>} - JSON response indicating success or error.
@@ -48,11 +49,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Construct the Python API URL
-    const pythonApiUrl = `http://127.0.0.1:8000/patent/trigger/${encodeURIComponent(
-      patentId
-    )}`;
-
+    const userId = user.id;
+    
+    // Construct the Python API URL with both userId and patentId
+    const pythonApiUrl = `http://127.0.0.1:5001/patent/trigger/${encodeURIComponent(
+      userId
+    )}/${encodeURIComponent(patentId)}`;
+    console.log("pythonApiUrl-",pythonApiUrl);
     // Invoke the Python Pipeline API
     const pythonResponse = await fetch(pythonApiUrl, {
       method: "POST",
