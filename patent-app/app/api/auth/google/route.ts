@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     if (data.url) {
       console.log("Google sign-in URL generated successfully1.");
       console.log("Google sign-in URL generated successfully.2",data.url);
-      console.log("Google sign-in URL generated successfully.3",process.env.NEXT_PUBLIC_APP_PRODUCTION_URL);
+      console.log("Google sign-in URL generated successfully.31",process.env.NEXT_PUBLIC_APP_PRODUCTION_URL);
       return NextResponse.json({
         status: "Success",
         url: data.url,
