@@ -1,0 +1,1 @@
+Script(scratchpad='No input text provided, unable to generate podcast script.', name_of_guest='', script=[])
