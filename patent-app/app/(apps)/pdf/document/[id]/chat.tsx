@@ -32,14 +32,6 @@ interface ImageData {
   description: string;
 }
 
-interface ChatProps {
-  currentDoc: DocumentType;
-  initialPythonMessages: ChatMessage[];
-  initialAgenticMessages: ChatMessage[];
-  userId: string;
-  documentId: string;
-}
-
 interface ChatMessage {
   role: "human" | "ai";
   content: string;
@@ -48,6 +40,15 @@ interface ChatMessage {
     subjectivity: number;
   };
 }
+interface ChatProps {
+  currentDoc: DocumentType;
+  initialPythonMessages: ChatMessage[];
+  initialAgenticMessages: ChatMessage[];
+  userId: string;
+  documentId: string;
+}
+
+
 
 export default function DocumentClient({
   currentDoc,
@@ -517,7 +518,7 @@ export default function DocumentClient({
                         } rounded-lg p-2 max-w-xs`}
                       >
                         {msg.content}
-                        
+
                         {/* Display sentiment data for AI messages */}
                         {msg.role === "ai" && msg.sentiment && (
                           <div className="mt-2 text-sm">
