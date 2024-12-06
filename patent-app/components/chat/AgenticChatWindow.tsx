@@ -1,5 +1,3 @@
-// components/chat/AgenticChatWindow.tsx
-
 "use client";
 
 import React, { useState, FormEvent } from "react";
@@ -65,18 +63,20 @@ const AgenticChatWindow: React.FC<AgenticChatWindowProps> = ({
    * Parses the message content to identify URLs and their types.
    *
    * @param {string} content - The message content.
-   * @returns {Array<{ type: string; content: string }>} - An array of content segments with their types.
+   * @returns {Array<{ type: string; content: string; key: number }>} - An array of content segments with their types.
    */
   const parseMessageContent = (content: string) => {
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    // Regular expression to match URLs
+    const urlRegex = /(https?:\/\/[^\s",!?]+)/g;
     const parts = content.split(urlRegex);
+    let key = 0;
 
-    return parts.map((part, index) => {
+    return parts.map((part) => {
       if (urlRegex.test(part)) {
         const type = determineContentType(part);
-        return { type, content: part, key: index };
+        return { type, content: part, key: key++ };
       }
-      return { type: "text", content: part, key: index };
+      return { type: "text", content: part, key: key++ };
     });
   };
 
@@ -86,14 +86,35 @@ const AgenticChatWindow: React.FC<AgenticChatWindowProps> = ({
    * @param {Array<{ type: string; content: string; key: number }>} parsedContent - The parsed content segments.
    * @returns {JSX.Element[]} - An array of JSX elements.
    */
-  const renderContent = (parsedContent: Array<{ type: string; content: string; key: number }>): JSX.Element[] => {
+  const renderContent = (
+    parsedContent: Array<{ type: string; content: string; key: number }>
+  ): JSX.Element[] => {
     return parsedContent.map((segment) => {
       switch (segment.type) {
         case "audio":
+          // Extract the file extension and assign correct MIME type
+          const fileExtension = segment.content.split(".").pop()?.toLowerCase();
+          let mimeType = "audio/wav"; // Default to 'audio/wav'
+          
+          // If the extension is mp3, change the mime type to 'audio/mpeg'
+          if (fileExtension === "mp3") {
+            mimeType = "audio/mpeg";
+          } else if (fileExtension === "ogg") {
+            mimeType = "audio/ogg";
+          }
+
           return (
-            <audio controls className="w-full mt-2" key={segment.key}>
-              <source src={segment.content} type="audio/mpeg" />
+            <audio
+              controls
+              className="w-full mt-2"
+              key={segment.key}
+              onError={() =>
+                console.error(`Failed to load audio from ${segment.content}`)
+              }
+            >
+              <source src={segment.content} type={mimeType} />
               Your browser does not support the audio element.
+              <p>Failed to load audio. Please check the URL.</p>
             </audio>
           );
         case "image":
@@ -103,6 +124,9 @@ const AgenticChatWindow: React.FC<AgenticChatWindowProps> = ({
               alt="Agentic Chatbot Response"
               className="w-full h-auto mt-2 rounded"
               key={segment.key}
+              onError={() =>
+                console.error(`Failed to load image from ${segment.content}`)
+              }
             />
           );
         case "text":
@@ -138,17 +162,20 @@ const AgenticChatWindow: React.FC<AgenticChatWindowProps> = ({
             messages.map((msg, index) => (
               <div
                 key={index}
-                className={`mb-4 flex ${
-                  msg.role === "human" ? "justify-end" : "justify-start"
-                }`}
+                className={`mb-4 flex ${msg.role === "human" ? "justify-end" : "justify-start"}`}
               >
                 <div
                   className={`${
-                    msg.role === "human" ? "bg-blue-500 text-white" : "bg-gray-300 text-black"
+                    msg.role === "human"
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-300 text-black"
                   } rounded-lg p-2 max-w-xs`}
                 >
                   {msg.role === "ai" ? (
-                    renderContent(parseMessageContent(msg.content))
+                    (() => {
+                      const parsed = parseMessageContent(msg.content);
+                      return renderContent(parsed);
+                    })()
                   ) : (
                     msg.content
                   )}
@@ -161,14 +188,16 @@ const AgenticChatWindow: React.FC<AgenticChatWindowProps> = ({
                           msg.sentiment.polarity
                         ).color}`}
                       >
-                        Polarity: {getPolarityLabel(msg.sentiment.polarity).label} ({msg.sentiment.polarity.toFixed(2)})
+                        Polarity: {getPolarityLabel(msg.sentiment.polarity).label} (
+                        {msg.sentiment.polarity.toFixed(2)})
                       </span>
                       <span
                         className={`inline-block px-2 py-1 rounded ${getSubjectivityLabel(
                           msg.sentiment.subjectivity
                         ).color}`}
                       >
-                        Subjectivity: {getSubjectivityLabel(msg.sentiment.subjectivity).label} ({msg.sentiment.subjectivity.toFixed(2)})
+                        Subjectivity: {getSubjectivityLabel(msg.sentiment.subjectivity).label} (
+                        {msg.sentiment.subjectivity.toFixed(2)})
                       </span>
                     </div>
                   )}
